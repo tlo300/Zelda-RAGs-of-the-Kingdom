@@ -50,8 +50,34 @@ jobs:
           retention-days: 30
 
   convert-llm:
-    # Placeholder — implemented in issue #9
     name: Convert LLM (Llama ${{ github.event.inputs.model_variant }})
     runs-on: macos-14
+    env:
+      MODEL_VARIANT: ${{ github.event.inputs.model_variant }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: model/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r model/requirements.txt
+
+      - name: Run unit tests
+        run: pytest model/tests/test_convert_llm.py -v
+
+      - name: Convert Llama to Core ML
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python model/convert_llm.py --output-dir model/
+
+      - name: Upload LlamaModel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LlamaModel-${{ github.event.inputs.model_variant }}.mlpackage
+          path: model/LlamaModel-${{ github.event.inputs.model_variant }}.mlpackage
+          retention-days: 30
