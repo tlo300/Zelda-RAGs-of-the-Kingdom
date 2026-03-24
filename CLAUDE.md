@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 1 - Data pipeline and knowledge base
-Last completed  : #23 Rechunk full dataset (PR #26 open)
+Last completed  : #7 Knowledge base validation and quality check (PR #27 open)
 In progress     : (none)
 Blocked         : (none)
-Last session    : 2026-03-24 — completed Issues #4, #5, #6, #23; #5, #6, #4 merged; #23 PR #26 open
+Last session    : 2026-03-24 — completed Issues #4, #5, #6, #23, #7; #5, #6, #4 merged; #23 PR #26 open; #7 PR #27 open
 
 ---
 
@@ -208,7 +208,7 @@ Last session    : 2026-03-24 — completed Issues #4, #5, #6, #23; #5, #6, #4 me
 | #23   | Re-run cleaning and chunking pipeline (full dataset) | 1 | PR #26 |
 | #5    | Text cleaning and chunking pipeline | 1 | merged |
 | #6    | Embedding generation and SQLite vector DB build | 1 | merged |
-| #7    | Knowledge base validation and quality check | 1 | backlog |
+| #7    | Knowledge base validation and quality check | 1 | PR #27 |
 | #8    | Embedding model Core ML conversion (CI) | 2 | backlog |
 | #9    | LLM Core ML conversion and quantization (CI) | 2 | backlog |
 | #10   | GitHub Actions CI workflows | 2 | backlog |
