@@ -69,7 +69,7 @@ No other code changes needed anywhere.
 
 ## Repo
 - GitHub: https://github.com/tlo300/Zelda-RAGs-of-the-Kingdom
-- Project board: https://github.com/users/tlo300/projects/2
+- Project board: https://github.com/users/tlo300/projects/3
 - Default branch: main (protected - no direct pushes)
 
 ---
