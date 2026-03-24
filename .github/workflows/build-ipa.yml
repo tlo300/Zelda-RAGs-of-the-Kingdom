@@ -1,0 +1,12 @@
+# .github/workflows/build-ipa.yml
+# Builds unsigned .ipa for AltStore sideloading
+# Implemented in issue #10
+# Note: for paid Developer account distribution, see docs/upgrade-to-3b.md
+name: Build iOS .ipa
+on:
+  workflow_dispatch:
+jobs:
+  placeholder:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
