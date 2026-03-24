@@ -1,0 +1,10 @@
+# Runs the Python data pipeline and validates the knowledge base
+# Implemented in issue #10
+name: Data pipeline
+on:
+  workflow_dispatch:
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4

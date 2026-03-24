@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+
+# Large data - raw scrape output not committed
+pipeline/data/raw/
+
+# Environment
+.env
+.env.local
+
+# Xcode
+ios/*.xcodeproj/xcuserdata/
+ios/DerivedData/
+ios/.build/
+*.ipa
+
+# Models - too large for git, downloaded by CI or manually
+model/*.mlpackage
+model/*.gguf
+model/*.bin
+ios/ZeldaGuide/Resources/*.mlpackage
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp

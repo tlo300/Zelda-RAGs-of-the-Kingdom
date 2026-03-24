@@ -1,0 +1,9 @@
+requests==2.31.0
+beautifulsoup4==4.12.3
+mwparserfromhell==0.6.6
+sentence-transformers==2.7.0
+sqlite-vec==0.1.6
+tqdm==4.66.4
+pytest==8.2.2
+pytest-mock==3.14.0
+responses==0.25.3
