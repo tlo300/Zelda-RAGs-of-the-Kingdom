@@ -43,6 +43,8 @@ testpaths = pipeline/tests
 # to sys.path, making `import pipeline` work without pip install -e .
 ```
 
+> **Note:** The spec's out-of-scope list says "conftest.py or shared fixtures — belong in later issues." That refers to fixture-bearing conftest files. This file carries zero fixtures — its sole purpose is sys.path setup. It is kept here, not in `pipeline/tests/`, so it applies globally to all future test subdirectories.
+
 - [ ] **Step 3: Verify pytest discovers the (not-yet-existing) test directory without error**
 
 Run from repo root:
