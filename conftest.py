@@ -1,3 +1,3 @@
 # conftest.py
-# Empty root conftest. Presence of this file ensures pytest adds the repo root
-# to sys.path, making `import pipeline` work without pip install -e .
+# Root-level conftest. Kept here as a hook point for future cross-suite fixtures.
+# sys.path setup is handled by pythonpath = . in pytest.ini
