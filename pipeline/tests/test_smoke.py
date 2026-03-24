@@ -3,10 +3,6 @@
 
 import logging
 from pathlib import Path
-
-import pipeline.scrape
-import pipeline.process
-import pipeline.build_db
 from pipeline.config import DATA_DIR, RAW_DIR, PROCESSED_DIR, DB_PATH, get_logger
 
 
@@ -40,15 +36,21 @@ def test_db_path_is_inside_data_dir():
 
 def test_scrape_importable():
     # Passes if pipeline/scrape/__init__.py exists and is syntax-error free
-    assert pipeline.scrape is not None
+    import importlib
+    mod = importlib.import_module("pipeline.scrape")
+    assert mod is not None
 
 
 def test_process_importable():
-    assert pipeline.process is not None
+    import importlib
+    mod = importlib.import_module("pipeline.process")
+    assert mod is not None
 
 
 def test_build_db_importable():
-    assert pipeline.build_db is not None
+    import importlib
+    mod = importlib.import_module("pipeline.build_db")
+    assert mod is not None
 
 
 def test_get_logger_returns_logger():
