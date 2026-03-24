@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 1 - Data pipeline and knowledge base
-Last completed  : #1 Python pipeline scaffold and dev environment (PR #19 open)
+Last completed  : #2 Hyrule Compendium API scraper (PR #20 open)
 In progress     : (none yet)
 Blocked         : (none)
-Last session    : 2026-03-24 — completed Issue #1, PR #19 open for review
+Last session    : 2026-03-24 — completed Issue #2, PR #20 open for review
 
 ---
 
@@ -202,7 +202,7 @@ Last session    : 2026-03-24 — completed Issue #1, PR #19 open for review
 | Issue | Title | Milestone | Status |
 |-------|-------|-----------|--------|
 | #1    | Python pipeline scaffold and dev environment | 1 | PR #19 |
-| #2    | Hyrule Compendium API scraper | 1 | backlog |
+| #2    | Hyrule Compendium API scraper | 1 | PR #20 |
 | #3    | Zelda Dungeon Wiki MediaWiki scraper | 1 | backlog |
 | #4    | Zelda Wiki MediaWiki scraper | 1 | backlog |
 | #5    | Text cleaning and chunking pipeline | 1 | backlog |
