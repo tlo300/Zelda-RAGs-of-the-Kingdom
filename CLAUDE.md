@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 1 - Data pipeline and knowledge base
-Last completed  : #2 Hyrule Compendium API scraper (PR #20 open)
+Last completed  : #5 Text cleaning and chunking pipeline (PR open)
 In progress     : (none yet)
 Blocked         : (none)
-Last session    : 2026-03-24 — completed Issue #2, PR #20 open for review
+Last session    : 2026-03-24 — completed Issue #5, PR open for review
 
 ---
 
@@ -205,7 +205,7 @@ Last session    : 2026-03-24 — completed Issue #2, PR #20 open for review
 | #2    | Hyrule Compendium API scraper | 1 | PR #20 |
 | #3    | Zelda Dungeon Wiki MediaWiki scraper | 1 | backlog |
 | #4    | Zelda Wiki MediaWiki scraper | 1 | backlog |
-| #5    | Text cleaning and chunking pipeline | 1 | backlog |
+| #5    | Text cleaning and chunking pipeline | 1 | PR open |
 | #6    | Embedding generation and SQLite vector DB build | 1 | backlog |
 | #7    | Knowledge base validation and quality check | 1 | backlog |
 | #8    | Embedding model Core ML conversion (CI) | 2 | backlog |
