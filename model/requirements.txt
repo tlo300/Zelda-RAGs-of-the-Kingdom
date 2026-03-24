@@ -1,3 +1,4 @@
 coremltools==8.0
 transformers==4.44.0
 torch==2.4.0
+sentence-transformers==3.0.1
