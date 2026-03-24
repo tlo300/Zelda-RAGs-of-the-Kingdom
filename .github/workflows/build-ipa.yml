@@ -1,3 +1,4 @@
+# .github/workflows/build-ipa.yml
 # Builds unsigned .ipa for AltStore sideloading
 # Implemented in issue #10
 # Note: for paid Developer account distribution, see docs/upgrade-to-3b.md

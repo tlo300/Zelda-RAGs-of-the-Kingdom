@@ -69,7 +69,7 @@ No other code changes needed anywhere.
 
 ## Repo
 - GitHub: https://github.com/tlo300/zelda-totk-guide
-- Project board: https://github.com/users/tlo300/projects/{number}
+- Project board: https://github.com/users/tlo300/projects/1
 - Default branch: main (protected - no direct pushes)
 
 ---

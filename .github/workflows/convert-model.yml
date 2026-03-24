@@ -1,3 +1,4 @@
+# .github/workflows/convert-model.yml
 # Converts Llama 3.2 (1B or 3B) to Core ML on a macOS runner
 # MODEL_VARIANT input: "1B" (default) or "3B"
 # Implemented in issue #10
