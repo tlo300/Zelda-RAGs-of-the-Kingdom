@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 1 - Data pipeline and knowledge base
-Last completed  : #4 Zelda Wiki MediaWiki scraper (PR #25 open)
+Last completed  : #23 Rechunk full dataset (PR #26 open)
 In progress     : (none)
 Blocked         : (none)
-Last session    : 2026-03-24 — completed Issues #4, #5, #6; #5 and #6 merged, #4 PR #25 open
+Last session    : 2026-03-24 — completed Issues #4, #5, #6, #23; #5, #6, #4 merged; #23 PR #26 open
 
 ---
 
@@ -204,7 +204,8 @@ Last session    : 2026-03-24 — completed Issues #4, #5, #6; #5 and #6 merged, 
 | #1    | Python pipeline scaffold and dev environment | 1 | merged |
 | #2    | Hyrule Compendium API scraper | 1 | merged |
 | #3    | Zelda Dungeon Wiki MediaWiki scraper | 1 | closed (403 blocked) |
-| #4    | Zelda Wiki MediaWiki scraper | 1 | PR #25 |
+| #4    | Zelda Wiki MediaWiki scraper | 1 | merged |
+| #23   | Re-run cleaning and chunking pipeline (full dataset) | 1 | PR #26 |
 | #5    | Text cleaning and chunking pipeline | 1 | merged |
 | #6    | Embedding generation and SQLite vector DB build | 1 | merged |
 | #7    | Knowledge base validation and quality check | 1 | backlog |
