@@ -68,7 +68,7 @@ No other code changes needed anywhere.
 ---
 
 ## Repo
-- GitHub: https://github.com/tlo300/zelda-totk-guide
+- GitHub: https://github.com/tlo300/Zelda-RAGs-of-the-Kingdom
 - Project board: https://github.com/users/tlo300/projects/2
 - Default branch: main (protected - no direct pushes)
 
@@ -91,7 +91,7 @@ Scraping rules:
 ---
 
 ## Project layout
-zelda-totk-guide/
+Zelda-RAGs-of-the-Kingdom/
   pipeline/
     scrape/                   # Data fetching scripts
     process/                  # Cleaning, chunking
@@ -161,16 +161,16 @@ Do not change these without an ADR in docs/decisions/.
 
 ### Starting an issue
 1. git pull origin main
-2. gh issue view {number} --repo tlo300/zelda-totk-guide
+2. gh issue view {number} --repo tlo300/Zelda-RAGs-of-the-Kingdom
 3. git checkout -b {number}-short-description
-4. gh issue edit {number} --add-label in-progress --repo tlo300/zelda-totk-guide
+4. gh issue edit {number} --add-label in-progress --repo tlo300/Zelda-RAGs-of-the-Kingdom
 
 ### Finishing an issue
 1. All acceptance criteria checkboxes met
 2. Relevant tests pass
 3. git push origin {branch}
-4. gh pr create --title "{issue title}" --body "Closes #{number}" --repo tlo300/zelda-totk-guide
-5. gh issue edit {number} --remove-label in-progress --repo tlo300/zelda-totk-guide
+4. gh pr create --title "{issue title}" --body "Closes #{number}" --repo tlo300/Zelda-RAGs-of-the-Kingdom
+5. gh issue edit {number} --remove-label in-progress --repo tlo300/Zelda-RAGs-of-the-Kingdom
 6. Update Current state section below
 7. git add CLAUDE.md && git commit -m "docs: update project state after #{number}"
 
