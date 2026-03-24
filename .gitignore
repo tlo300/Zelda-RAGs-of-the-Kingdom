@@ -25,6 +25,9 @@ model/*.gguf
 model/*.bin
 ios/ZeldaGuide/Resources/*.mlpackage
 
+# Git worktrees
+.worktrees/
+
 # OS
 .DS_Store
 Thumbs.db
