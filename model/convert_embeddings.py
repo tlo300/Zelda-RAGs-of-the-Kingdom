@@ -36,6 +36,32 @@ def _l2_normalize(v: np.ndarray) -> np.ndarray:
     return v / np.clip(norm, 1e-12, None)
 
 
+EMBEDDING_DIM = 384
+
+
+def _assert_output_shape(output_shape: list) -> None:
+    """Exit non-zero if the last dimension of the Core ML output shape is not EMBEDDING_DIM."""
+    if output_shape[-1] != EMBEDDING_DIM:
+        print(
+            f"ERROR: output shape {output_shape} does not end with {EMBEDDING_DIM}. "
+            "Pipeline DB and iOS embedder dimensions would mismatch.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
+def _assert_embedding_match(py_emb: np.ndarray, cml_emb: np.ndarray, tol: float = 1e-3) -> None:
+    """Exit non-zero if Core ML and Python embeddings differ beyond tolerance."""
+    max_diff = float(np.abs(cml_emb - py_emb).max())
+    print(f"Max abs diff Core ML vs Python: {max_diff:.6e}")
+    if max_diff > tol:
+        print(
+            f"ERROR: Core ML and Python embeddings differ by {max_diff:.6e} (tolerance {tol}).",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
 def convert(output_dir: str) -> None:
     import torch
     import coremltools as ct
@@ -100,14 +126,7 @@ def convert(output_dir: str) -> None:
     print("Verifying Core ML output shape …")
     spec = mlmodel.get_spec()
     output_shape = list(spec.description.output[0].type.multiArrayType.shape)
-    # Core ML spec stores the full output shape; for a (1,384) trace it will be [1, 384]
-    if output_shape[-1] != 384:
-        print(
-            f"ERROR: output shape {output_shape} does not end with 384. "
-            "Pipeline DB and iOS embedder dimensions would mismatch.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    _assert_output_shape(output_shape)
     print(f"Output shape OK: {output_shape}")
 
     # --- Save ---
@@ -124,14 +143,7 @@ def convert(output_dir: str) -> None:
     })
     cml_emb = list(cml_out.values())[0].flatten()   # (384,)
     py_emb = py_out.detach().numpy().flatten()       # (384,)
-    max_diff = float(np.abs(cml_emb - py_emb).max())
-    print(f"Max abs diff Core ML vs Python: {max_diff:.6e}")
-    if max_diff > 1e-3:
-        print(
-            f"ERROR: Core ML and Python embeddings differ by {max_diff:.6e} (tolerance 1e-3).",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    _assert_embedding_match(py_emb, cml_emb)
     print("Cross-check passed.")
 
 
