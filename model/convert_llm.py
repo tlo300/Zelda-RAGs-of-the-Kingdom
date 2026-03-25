@@ -179,11 +179,13 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
 
     # --- Export with torch.export (required for stateful KV-cache conversion) ---
     print("Exporting with torch.export …")
+    # Use seq_len > 1 so torch.export doesn't infer the sequence dim as a
+    # static constant, which would conflict with the dynamic shape constraint.
     example_inputs = (
-        torch.zeros(1, 1, dtype=torch.int64),
-        torch.zeros(1, 1, dtype=torch.int64),
+        torch.zeros(1, 4, dtype=torch.int64),
+        torch.zeros(1, 4, dtype=torch.int64),
     )
-    seq_dim = torch.export.Dim("seq", min=1, max=max_seq)
+    seq_dim = torch.export.Dim("seq", min=2, max=max_seq)
     dynamic_shapes = {
         "input_ids": {1: seq_dim},
         "attention_mask": {1: seq_dim},
