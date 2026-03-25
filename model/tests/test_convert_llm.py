@@ -126,6 +126,28 @@ def test_assert_smoke_test_exits_empty():
     assert exc.value.code == 1
 
 
+def test_assert_smoke_test_exits_degenerate():
+    # All tokens identical — the !!!!! repetition loop that prompted this fix.
+    tokens = [42] * _SMOKE_TEST_MIN_TOKENS
+    with pytest.raises(SystemExit) as exc:
+        _assert_smoke_test(tokens)
+    assert exc.value.code == 1
+
+
+def test_assert_smoke_test_exits_mostly_degenerate():
+    # 80 % identical tokens is still flagged.
+    tokens = [42] * 16 + [1, 2, 3, 4]   # 80 % token 42
+    with pytest.raises(SystemExit) as exc:
+        _assert_smoke_test(tokens)
+    assert exc.value.code == 1
+
+
+def test_assert_smoke_test_passes_varied():
+    # 75 % identical is below the 80 % threshold — should pass.
+    tokens = [42] * 15 + [1, 2, 3, 4, 5]   # 75 % token 42
+    _assert_smoke_test(tokens)  # must not raise
+
+
 # ---------------------------------------------------------------------------
 # _assert_size
 # ---------------------------------------------------------------------------
@@ -207,6 +229,11 @@ def _make_torch_mock():
     enc["attention_mask"].numpy.return_value = np.ones((1, 5), dtype=np.int32)
     tokenizer_mock.return_value = enc
     tokenizer_mock.decode.return_value = "A shield found in Hyrule Castle."
+    tokenizer_mock.apply_chat_template.return_value = (
+        "<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n"
+        "<|im_start|>user\nWhat is the Hylian Shield?<|im_end|>\n"
+        "<|im_start|>assistant\n"
+    )
 
     torch_mock.float32 = "float32"
     torch_mock.float16 = "float16"
@@ -237,15 +264,22 @@ def _make_ct_mock():
 
 
 def _make_optimize_mock():
-    # Build logits that produce _SMOKE_TEST_MIN_TOKENS distinct tokens
+    # Build a predict side_effect that cycles through _SMOKE_TEST_MIN_TOKENS
+    # distinct token IDs so the new degenerate-output check doesn't fire.
     vocab_size = 32000
-    logits = np.zeros((1, 1, vocab_size), dtype=np.float32)
-    logits[0, 0, 42] = 1.0
+    call_counter = {"n": 0}
+
+    def _cycling_predict(inputs):
+        token_id = call_counter["n"] % _SMOKE_TEST_MIN_TOKENS
+        call_counter["n"] += 1
+        logits = np.zeros((1, 1, vocab_size), dtype=np.float32)
+        logits[0, 0, token_id] = 1.0
+        return {"logits": logits}
 
     # compressed_mock is returned by ct.convert() (torch-level palettization
     # means ct.convert() produces the final compressed model directly)
     compressed_mock = MagicMock()
-    compressed_mock.predict.return_value = {"logits": logits}
+    compressed_mock.predict.side_effect = _cycling_predict
     compressed_mock.save = MagicMock()
 
     # torch_optimize_mock represents coremltools.optimize.torch.palettization

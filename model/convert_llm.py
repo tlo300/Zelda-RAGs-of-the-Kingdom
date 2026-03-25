@@ -106,11 +106,22 @@ def _assert_filename_sync(derived: str, from_config: str) -> None:
 
 
 def _assert_smoke_test(tokens: list, min_tokens: int = _SMOKE_TEST_MIN_TOKENS) -> None:
-    """Exit non-zero if the smoke test generated fewer tokens than expected."""
+    """Exit non-zero if the smoke test generated fewer tokens than expected,
+    or if output is degenerate (>= 80% identical tokens — repetition loop)."""
     if len(tokens) < min_tokens:
         print(
             f"ERROR: Smoke test generated only {len(tokens)} tokens "
             f"(expected >= {min_tokens}). The model may be broken.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    from collections import Counter
+    most_common_count = Counter(tokens).most_common(1)[0][1]
+    if most_common_count / len(tokens) >= 0.8:
+        print(
+            f"ERROR: Degenerate output — {most_common_count}/{len(tokens)} tokens are "
+            f"identical (token {Counter(tokens).most_common(1)[0][0]}). "
+            "The prompt is probably missing the chat template.",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -246,8 +257,17 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     _assert_size(save_path, variant)
 
     # --- Smoke test: generate _SMOKE_TEST_MIN_TOKENS tokens ---
+    # Apply the Qwen2.5 ChatML template — the model is an Instruct model and
+    # degenerates (repetition loops) when fed a bare prompt without the wrapper.
     print(f"Running smoke test ({_SMOKE_TEST_MIN_TOKENS} tokens) …")
-    enc = tokenizer("What is the Hylian Shield?", return_tensors="pt")
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user",   "content": "What is the Hylian Shield?"},
+    ]
+    input_text = tokenizer.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True
+    )
+    enc = tokenizer(input_text, return_tensors="pt")
     input_ids = enc["input_ids"].numpy().astype(np.int32)
     attention_mask = enc["attention_mask"].numpy().astype(np.int32)
 
