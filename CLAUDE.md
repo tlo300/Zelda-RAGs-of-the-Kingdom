@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 3 - iOS app core
-Last completed  : #15 Chat UI — ChatView, ChatViewModel, MessageBubbleView with typing indicator, streaming token accumulation, stop button, ChatViewModelTests; PR #59 open
+Last completed  : #15 Chat UI — ChatView, ChatViewModel, MessageBubbleView with typing indicator, streaming token accumulation, stop button, ChatViewModelTests + iOS XCTest CI workflow; merged PR #59
 In progress     : #12 On-device vector search service (PR #47 open), #13 On-device LLM inference service (PR #50 open)
 Blocked         : (none)
-Last session    : 2026-03-25 — completed #15 (ChatView with scrollable message list + input bar, ChatViewModel @MainActor streaming via RAGEngine.answer(), send/cancel, typing indicator, dark mode via system materials, 6 XCTest cases)
+Last session    : 2026-03-25 — completed #15 (ChatView with scrollable message list + input bar, ChatViewModel @MainActor streaming via RAGEngine.answer(), send/cancel, typing indicator, dark mode via system materials, 6 XCTest cases; added test-ios.yml CI workflow)
 
 ---
 
@@ -216,7 +216,7 @@ Last session    : 2026-03-25 — completed #15 (ChatView with scrollable message
 | #12   | On-device vector search service | 3 | PR #47 |
 | #13   | On-device LLM inference service | 3 | PR #50 |
 | #14   | RAG engine (retrieval, prompt assembly, generation) | 3 | merged |
-| #15   | Chat UI - question input and streaming answer | 3 | PR #59 |
+| #15   | Chat UI - question input and streaming answer | 3 | merged |
 | #16   | Source attribution view | 3 | backlog |
 | #17   | AltStore sideload build and distribution docs | 4 | backlog |
 | #18   | App performance tuning and model warm-up | 4 | backlog |
