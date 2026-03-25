@@ -1,41 +1,39 @@
 # .github/workflows/test-ios.yml
-# Runs the ZeldaGuide XCTest suite on every PR and push to main.
-# Uses a simulator destination so no signing or device is required.
-
-name: iOS Tests
+# Runs the XCTest suite on an iOS simulator on every push to main and on every PR.
+# No real Core ML models required — all services use injected mocks.
+# Catches: compilation errors, Swift logic bugs, MLMultiArray shape contract violations.
+name: iOS unit tests
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'ios/**'
-      - '.github/workflows/test-ios.yml'
   pull_request:
-    paths:
-      - 'ios/**'
-      - '.github/workflows/test-ios.yml'
 
 jobs:
   test:
-    name: XCTest (iPhone 15, iOS 17)
-    runs-on: macos-14
-
+    name: XCTest on iOS Simulator
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run tests
+      - name: Resolve Swift package dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project ios/ZeldaGuide.xcodeproj \
+            -scheme ZeldaGuide
+
+      - name: Run unit tests on simulator
         run: |
           xcodebuild test \
             -project ios/ZeldaGuide.xcodeproj \
             -scheme ZeldaGuide \
-            -destination "platform=iOS Simulator,name=iPhone 15,OS=latest" \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            | xcpretty --color || true
+            -destination "platform=iOS Simulator,name=iPhone 16" \
+            -only-testing:ZeldaGuideTests
 
       - name: Write job summary
         if: always()
         run: |
-          echo "## iOS Test Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- Runner: macos-14" >> $GITHUB_STEP_SUMMARY
-          echo "- Destination: iPhone 15 Simulator (iOS latest)" >> $GITHUB_STEP_SUMMARY
+          echo "## iOS Unit Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Runner: macos-15" >> $GITHUB_STEP_SUMMARY
+          echo "- Destination: iPhone 16 Simulator" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests: ZeldaGuideTests" >> $GITHUB_STEP_SUMMARY

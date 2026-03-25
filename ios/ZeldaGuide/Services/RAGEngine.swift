@@ -76,6 +76,22 @@ actor CoreMLEmbeddingService: EmbeddingService {
         return cachedURL
     }
 
+    /// Builds the `[1, 128]` MLMultiArray pair expected by the MiniLM Core ML model.
+    /// The model was traced with max_length=128 — inputs must always have exactly that shape.
+    /// Short texts are zero-padded; long texts are truncated. Attention mask is 0 for padding.
+    static func buildInputArrays(for text: String) throws -> (inputIDs: MLMultiArray, attentionMask: MLMultiArray) {
+        let fixedLen  = 128
+        let rawTokens = Array(text.utf8.prefix(fixedLen)).map { Int32($0) }
+        let realLen   = rawTokens.count
+        let inputIDs      = try MLMultiArray(shape: [1, NSNumber(value: fixedLen)], dataType: .int32)
+        let attentionMask = try MLMultiArray(shape: [1, NSNumber(value: fixedLen)], dataType: .int32)
+        for i in 0..<fixedLen {
+            inputIDs[i]      = i < realLen ? NSNumber(value: rawTokens[i]) : 0
+            attentionMask[i] = i < realLen ? 1 : 0
+        }
+        return (inputIDs, attentionMask)
+    }
+
     /// Embeds `text` using the Core ML all-MiniLM-L6-v2 model.
     /// Throws `EmbeddingError.invalidOutput` if the vector contains NaN values.
     func embed(_ text: String) async throws -> [Float] {
@@ -86,19 +102,7 @@ actor CoreMLEmbeddingService: EmbeddingService {
                 userInfo: [NSLocalizedDescriptionKey: "Model unavailable after load"]))
         }
 
-        // Placeholder tokenisation: UTF-8 bytes mapped to token IDs.
-        // Replace with a proper BPE tokeniser once tokenizer.json is bundled from CI.
-        // The model was traced with a fixed seq length of 128 — always pad to that length.
-        let fixedLen = 128
-        let rawTokens = Array(text.utf8.prefix(fixedLen)).map { Int32($0) }
-        let realLen   = rawTokens.count
-
-        let inputIDs      = try MLMultiArray(shape: [1, NSNumber(value: fixedLen)], dataType: .int32)
-        let attentionMask = try MLMultiArray(shape: [1, NSNumber(value: fixedLen)], dataType: .int32)
-        for i in 0..<fixedLen {
-            inputIDs[i]      = i < realLen ? NSNumber(value: rawTokens[i]) : 0
-            attentionMask[i] = i < realLen ? 1 : 0
-        }
+        let (inputIDs, attentionMask) = try CoreMLEmbeddingService.buildInputArrays(for: text)
 
         let features = try MLDictionaryFeatureProvider(dictionary: [
             "input_ids":      MLFeatureValue(multiArray: inputIDs),
