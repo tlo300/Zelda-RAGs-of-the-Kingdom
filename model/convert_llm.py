@@ -195,6 +195,7 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
             model,
             example_inputs,
             dynamic_shapes=dynamic_shapes,
+            strict=False,  # required for models that use autocast internally
         )
 
     # --- Core ML stateful conversion ---
