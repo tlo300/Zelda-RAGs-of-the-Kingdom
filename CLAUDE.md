@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 3 - iOS app core
-Last completed  : #11 iOS project scaffold and ModelConfig (PR open)
+Last completed  : #11 iOS project scaffold and ModelConfig (merged PR #45)
 In progress     : (none)
 Blocked         : (none)
-Last session    : 2026-03-25 — completed Issues #10, #11; PR #44 open for #10; PR open for #11
+Last session    : 2026-03-25 — completed Issues #10, #11; PR #44 merged for #10; PR #45 merged for #11; PR #46 open for iOS 18 deployment target fix
 
 ---
 
@@ -211,8 +211,8 @@ Last session    : 2026-03-25 — completed Issues #10, #11; PR #44 open for #10;
 | #7    | Knowledge base validation and quality check | 1 | PR #27 |
 | #8    | Embedding model Core ML conversion (CI) | 2 | PR #28 |
 | #9    | LLM Core ML conversion and quantization (CI) | 2 | PR #29 |
-| #10   | GitHub Actions CI workflows | 2 | PR #44 |
-| #11   | iOS project scaffold and ModelConfig | 3 | PR open |
+| #10   | GitHub Actions CI workflows | 2 | merged |
+| #11   | iOS project scaffold and ModelConfig | 3 | merged |
 | #12   | On-device vector search service | 3 | backlog |
 | #13   | On-device LLM inference service | 3 | backlog |
 | #14   | RAG engine (retrieval, prompt assembly, generation) | 3 | backlog |
