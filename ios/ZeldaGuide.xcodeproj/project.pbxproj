@@ -26,6 +26,7 @@
 		AG1000000000000000000001 /* SourceAttributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AG2000000000000000000001 /* SourceAttributionView.swift */; };
 		AH1000000000000000000001 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AH2000000000000000000001 /* ChatViewModel.swift */; };
 		AI1000000000000000000001 /* ChatViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI2000000000000000000001 /* ChatViewModelTests.swift */; };
+		AJ1000000000000000000001 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AJ2000000000000000000001 /* ChatMessage.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +49,7 @@
 		AG2000000000000000000001 /* SourceAttributionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceAttributionView.swift; sourceTree = "<group>"; };
 		AH2000000000000000000001 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		AI2000000000000000000001 /* ChatViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModelTests.swift; sourceTree = "<group>"; };
+		AJ2000000000000000000001 /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -152,6 +154,7 @@
 			isa = PBXGroup;
 			children = (
 				AB2000000000000000000001 /* KnowledgeChunk.swift */,
+				AJ2000000000000000000001 /* ChatMessage.swift */,
 				AH2000000000000000000001 /* ChatViewModel.swift */,
 			);
 			path = Models;
@@ -299,6 +302,7 @@
 				AF1000000000000000000001 /* MessageBubbleView.swift in Sources */,
 				AG1000000000000000000001 /* SourceAttributionView.swift in Sources */,
 				AH1000000000000000000001 /* ChatViewModel.swift in Sources */,
+				AJ1000000000000000000001 /* ChatMessage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
