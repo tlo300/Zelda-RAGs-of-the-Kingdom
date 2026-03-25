@@ -128,7 +128,8 @@ actor LLMService {
         do {
             let config = MLModelConfiguration()
             config.computeUnits = .cpuAndNeuralEngine
-            let model = try await MLModel.load(contentsOf: modelURL, configuration: config)
+            let compiledURL = try await compileAndCache(modelURL)
+            let model = try await MLModel.load(contentsOf: compiledURL, configuration: config)
             predictor = CoreMLPredictor(model: model)
         } catch let e as LLMError {
             throw e
@@ -138,6 +139,21 @@ actor LLMService {
 
         tokenizer = BundledTokenizer()
         registerMemoryWarningHandler()
+    }
+
+    /// Compiles a .mlpackage to a .mlmodelc and caches it in Library/Caches.
+    /// Subsequent calls return the cached URL immediately.
+    private func compileAndCache(_ sourceURL: URL) async throws -> URL {
+        let fm = FileManager.default
+        let cacheDir = fm.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("CompiledModels", isDirectory: true)
+        let cachedURL = cacheDir.appendingPathComponent(sourceURL.lastPathComponent + "c")
+        if fm.fileExists(atPath: cachedURL.path) { return cachedURL }
+        try fm.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        let tmpURL = try await MLModel.compileModel(at: sourceURL)
+        try? fm.removeItem(at: cachedURL)
+        try fm.moveItem(at: tmpURL, to: cachedURL)
+        return cachedURL
     }
 
     // MARK: - Generation
