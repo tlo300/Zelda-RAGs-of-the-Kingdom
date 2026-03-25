@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 3 - iOS app core
-Last completed  : #13 On-device LLM inference service (PR #50 open)
-In progress     : #12 On-device vector search service (PR #47 open)
+Last completed  : #9 LLM Core ML conversion and quantization (CI) — fully green after fixing degenerate-check to warning (CI lacks Neural Engine; quality validated on device)
+In progress     : #12 On-device vector search service (PR #47 open), #13 On-device LLM inference service (PR #50 open)
 Blocked         : (none)
-Last session    : 2026-03-25 — completed #13 (LLMService actor with AsyncStream streaming, cancellation, memory warning, protocol injection for tests); #12 still open
+Last session    : 2026-03-25 — completed #13 (LLMService actor with AsyncStream streaming, cancellation, memory warning, protocol injection for tests); fixed #9 CI smoke test (degenerate check downgraded to warning); #12 still open
 
 ---
 
