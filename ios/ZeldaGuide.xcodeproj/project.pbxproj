@@ -12,6 +12,7 @@
 		AA1000000000000000000003 /* ModelConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000003 /* ModelConfig.swift */; };
 		AA1000000000000000000004 /* knowledge_base.db in Resources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000004 /* knowledge_base.db */; };
 		AA1000000000000000000005 /* MiniLMEmbedder.mlpackage in Resources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000005 /* MiniLMEmbedder.mlpackage */; };
+		AA1000000000000000000007 /* QwenModel-1B.mlpackage in Resources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000007 /* QwenModel-1B.mlpackage */; };
 		AA1000000000000000000006 /* SQLiteVec in Frameworks */ = {isa = PBXBuildFile; productRef = AAC000000000000000000001 /* SQLiteVec */; };
 		AB1000000000000000000001 /* KnowledgeChunk.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000001 /* KnowledgeChunk.swift */; };
 		AB1000000000000000000002 /* VectorSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000002 /* VectorSearchService.swift */; };
@@ -35,6 +36,7 @@
 		AA2000000000000000000003 /* ModelConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelConfig.swift; sourceTree = "<group>"; };
 		AA2000000000000000000004 /* knowledge_base.db */ = {isa = PBXFileReference; lastKnownFileType = file; path = knowledge_base.db; sourceTree = "<group>"; };
 		AA2000000000000000000005 /* MiniLMEmbedder.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder; path = MiniLMEmbedder.mlpackage; sourceTree = "<group>"; };
+		AA2000000000000000000007 /* QwenModel-1B.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "QwenModel-1B.mlpackage"; sourceTree = "<group>"; };
 		AA2000000000000000000006 /* ZeldaGuide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZeldaGuide.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB2000000000000000000001 /* KnowledgeChunk.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowledgeChunk.swift; sourceTree = "<group>"; };
 		AB2000000000000000000002 /* VectorSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorSearchService.swift; sourceTree = "<group>"; };
@@ -176,6 +178,7 @@
 			children = (
 				AA2000000000000000000004 /* knowledge_base.db */,
 				AA2000000000000000000005 /* MiniLMEmbedder.mlpackage */,
+				AA2000000000000000000007 /* QwenModel-1B.mlpackage */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -281,6 +284,7 @@
 			files = (
 				AA1000000000000000000004 /* knowledge_base.db in Resources */,
 				AA1000000000000000000005 /* MiniLMEmbedder.mlpackage in Resources */,
+				AA1000000000000000000007 /* QwenModel-1B.mlpackage in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

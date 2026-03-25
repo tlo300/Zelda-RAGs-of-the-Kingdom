@@ -35,6 +35,10 @@ on:
         default: '1B'
         type: choice
         options: ['1B', '3B']
+      llm_run_id:
+        description: 'Run ID of convert-model.yml that produced the QwenModel artifact'
+        required: true
+        type: string
 
 jobs:
   build-ipa:
@@ -42,6 +46,32 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: model/requirements.txt
+
+      - name: Install model conversion dependencies
+        run: pip install -r model/requirements.txt
+
+      - name: Convert embedding model (MiniLMEmbedder)
+        run: python model/convert_embeddings.py --output-dir model/
+
+      - name: Inject MiniLMEmbedder into Resources
+        run: |
+          rm -rf ios/ZeldaGuide/Resources/MiniLMEmbedder.mlpackage
+          cp -r model/MiniLMEmbedder.mlpackage ios/ZeldaGuide/Resources/MiniLMEmbedder.mlpackage
+
+      - name: Download QwenModel artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: QwenModel-${{ inputs.model_variant }}.mlpackage
+          path: ios/ZeldaGuide/Resources/QwenModel-${{ inputs.model_variant }}.mlpackage
+          run-id: ${{ inputs.llm_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Archive (unsigned)
         run: |
