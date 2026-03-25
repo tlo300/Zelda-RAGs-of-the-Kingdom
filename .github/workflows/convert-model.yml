@@ -121,6 +121,8 @@ jobs:
 
       - name: Smoke test existing artifact
         if: ${{ github.event.inputs.skip_conversion == 'true' }}
+        env:
+          PYTHONPATH: .
         run: python model/smoke_test_llm.py --model-path "model/LlamaModel-${MODEL_VARIANT}.mlpackage"
 
       - name: Write job summary
