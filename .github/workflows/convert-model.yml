@@ -49,6 +49,15 @@ jobs:
           path: model/MiniLMEmbedder.mlpackage
           retention-days: 30
 
+      - name: Write job summary
+        if: always()
+        run: |
+          SIZE=$(du -sh model/MiniLMEmbedder.mlpackage 2>/dev/null | cut -f1 || echo "n/a")
+          echo "## Embedding Model Conversion Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Model: all-MiniLM-L6-v2" >> $GITHUB_STEP_SUMMARY
+          echo "- Output: MiniLMEmbedder.mlpackage ($SIZE)" >> $GITHUB_STEP_SUMMARY
+          echo "- Runner: macos-14" >> $GITHUB_STEP_SUMMARY
+
   convert-llm:
     name: Convert LLM (Llama ${{ github.event.inputs.model_variant }})
     runs-on: macos-14
@@ -81,3 +90,13 @@ jobs:
           name: LlamaModel-${{ github.event.inputs.model_variant }}.mlpackage
           path: model/LlamaModel-${{ github.event.inputs.model_variant }}.mlpackage
           retention-days: 30
+
+      - name: Write job summary
+        if: always()
+        run: |
+          ARTIFACT="model/LlamaModel-${MODEL_VARIANT}.mlpackage"
+          SIZE=$(du -sh "$ARTIFACT" 2>/dev/null | cut -f1 || echo "n/a")
+          echo "## LLM Conversion Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Model variant: $MODEL_VARIANT" >> $GITHUB_STEP_SUMMARY
+          echo "- Output: LlamaModel-${MODEL_VARIANT}.mlpackage ($SIZE)" >> $GITHUB_STEP_SUMMARY
+          echo "- Runner: macos-14" >> $GITHUB_STEP_SUMMARY

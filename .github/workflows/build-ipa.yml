@@ -1,12 +1,78 @@
 # .github/workflows/build-ipa.yml
-# Builds unsigned .ipa for AltStore sideloading
-# Implemented in issue #10
-# Note: for paid Developer account distribution, see docs/upgrade-to-3b.md
+# Builds an unsigned .ipa for AltStore / SideStore sideloading.
+# Triggers manually via workflow_dispatch only.
+#
+# ── Apple signing for the 3B upgrade path ─────────────────────────────────
+# If you acquire a paid Apple Developer account (required for ad-hoc or
+# App Store distribution), replace the unsigned packaging step below with
+# a proper xcodebuild -exportArchive call using an ExportOptions.plist:
+#
+#   <key>method</key><string>ad-hoc</string>
+#   <key>signingStyle</key><string>manual</string>
+#   <key>provisioningProfiles</key>
+#   <dict>
+#     <key>com.yourname.ZeldaGuide</key><string>YourProfileName</string>
+#   </dict>
+#
+# Before calling xcodebuild -exportArchive, import your Distribution
+# certificate and provisioning profile into the macOS keychain:
+#
+#   echo "$CERTIFICATE_P12" | base64 --decode > cert.p12
+#   security import cert.p12 -k ~/Library/Keychains/login.keychain-db \
+#     -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+#
+# Store CERTIFICATE_P12, CERTIFICATE_PASSWORD, and the provisioning profile
+# as GitHub Actions secrets. See docs/upgrade-to-3b.md for the full workflow.
+# ──────────────────────────────────────────────────────────────────────────
 name: Build iOS .ipa
+
 on:
   workflow_dispatch:
+
 jobs:
-  placeholder:
+  build-ipa:
+    name: Build unsigned .ipa (AltStore / SideStore)
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+
+      - name: Archive (unsigned)
+        run: |
+          xcodebuild archive \
+            -project ios/ZeldaGuide.xcodeproj \
+            -scheme ZeldaGuide \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/ZeldaGuide.xcarchive" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package unsigned .ipa
+        run: |
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -r "$RUNNER_TEMP/ZeldaGuide.xcarchive/Products/Applications/ZeldaGuide.app" \
+                "$RUNNER_TEMP/Payload/ZeldaGuide.app"
+          cd "$RUNNER_TEMP"
+          zip -r ZeldaGuide.ipa Payload/
+
+      - name: Get .ipa size
+        id: ipa_size
+        run: |
+          SIZE=$(du -sh "$RUNNER_TEMP/ZeldaGuide.ipa" | cut -f1)
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
+
+      - name: Upload .ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZeldaGuide.ipa
+          path: ${{ runner.temp }}/ZeldaGuide.ipa
+          retention-days: 30
+
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## Build .ipa Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Runner: macos-14" >> $GITHUB_STEP_SUMMARY
+          echo "- Artifact: ZeldaGuide.ipa" >> $GITHUB_STEP_SUMMARY
+          echo "- Size: ${{ steps.ipa_size.outputs.size }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Signing: unsigned (AltStore / SideStore)" >> $GITHUB_STEP_SUMMARY
