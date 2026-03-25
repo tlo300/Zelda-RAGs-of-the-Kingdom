@@ -32,6 +32,15 @@ To switch models: change one constant in ModelConfig.swift and re-run the CI con
 
 See docs/build.md for full instructions.
 
+## GitHub Actions secrets
+
+The following secret must be configured in your repository settings before running CI workflows
+(Settings → Secrets and variables → Actions → New repository secret):
+
+| Secret | Used by | Purpose |
+|--------|---------|---------|
+| `HF_TOKEN` | `convert-model.yml` | Authenticate with Hugging Face to download the Llama model weights |
+
 ## Data sources
 
 - Hyrule Compendium API (https://gadhagod.github.io/Hyrule-Compendium-API)
