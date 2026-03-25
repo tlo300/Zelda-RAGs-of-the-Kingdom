@@ -237,6 +237,14 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     del traced
     gc.collect()
 
+    # --- Save (before smoke test so the artifact is always available) ---
+    save_path = out_path / derived
+    print(f"Saving to {save_path} …")
+    compressed.save(str(save_path))
+
+    # --- Size check ---
+    _assert_size(save_path, variant)
+
     # --- Smoke test: generate _SMOKE_TEST_MIN_TOKENS tokens ---
     print(f"Running smoke test ({_SMOKE_TEST_MIN_TOKENS} tokens) …")
     enc = tokenizer("What is the Hylian Shield?", return_tensors="pt")
@@ -256,15 +264,6 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     decoded = tokenizer.decode(generated_tokens, skip_special_tokens=True)
     print(f"Smoke test output: {decoded!r}")
     _assert_smoke_test(generated_tokens)
-    print("Smoke test passed.")
-
-    # --- Save ---
-    save_path = out_path / derived
-    print(f"Saving to {save_path} …")
-    compressed.save(str(save_path))
-
-    # --- Size check ---
-    _assert_size(save_path, variant)
     print(f"Done: {save_path}")
 
 
