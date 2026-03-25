@@ -1,6 +1,6 @@
 # Upgrading from 1B to 3B model
 
-When you have a paid Apple Developer account and want better answer quality:
+When you want better answer quality for complex questions:
 
 ## Steps
 
@@ -25,4 +25,4 @@ When you have a paid Apple Developer account and want better answer quality:
 
 - The 3B model requires ~1.8GB of storage vs ~600MB for 1B
 - All other code stays the same - ModelConfig.swift handles all differences
-- You will need to set up Apple Developer signing in build-ipa.yml (see comments in that file)
+- Sideload with SideStore the same way as the 1B build
