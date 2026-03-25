@@ -1,33 +1,33 @@
 // ModelConfig.swift
 // THE single source of truth for the LLM variant.
 // To switch from 1B to 3B: change modelVariant to "3B", re-run the convert-model CI job,
-// and replace LlamaModel.mlpackage in Resources/. No other files need to change.
+// and replace QwenModel.mlpackage in Resources/. No other files need to change.
 
 import Foundation
 
 enum ModelVariant: String {
-    case llama1B = "1B"
-    case llama3B = "3B"
+    case qwen1B = "1B"
+    case qwen3B = "3B"
 }
 
 struct ModelConfig {
 
     // MARK: - Change this to switch model variants
-    static let activeVariant: ModelVariant = .llama1B
+    static let activeVariant: ModelVariant = .qwen1B
 
     // MARK: - Derived config (do not edit below this line)
 
     static var modelFilename: String {
         switch activeVariant {
-        case .llama1B: return "LlamaModel-1B.mlpackage"
-        case .llama3B: return "LlamaModel-3B.mlpackage"
+        case .qwen1B: return "QwenModel-1B.mlpackage"
+        case .qwen3B: return "QwenModel-3B.mlpackage"
         }
     }
 
     static var maxContextTokens: Int {
         switch activeVariant {
-        case .llama1B: return 4096
-        case .llama3B: return 8192
+        case .qwen1B: return 4096
+        case .qwen3B: return 8192
         }
     }
 

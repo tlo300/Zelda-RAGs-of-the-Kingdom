@@ -1,6 +1,6 @@
 """
 smoke_test_llm.py
-Loads an existing LlamaModel .mlpackage and runs a structural smoke test:
+Loads an existing QwenModel .mlpackage and runs a structural smoke test:
 verifies the model loads, runs predict() without crashing, and produces the
 expected number of output tokens.
 
@@ -12,7 +12,7 @@ immediately after conversion in the same process where the model is still
 in memory and behaves correctly.
 
 Usage:
-    python model/smoke_test_llm.py --model-path model/LlamaModel-1B.mlpackage
+    python model/smoke_test_llm.py --model-path model/QwenModel-1B.mlpackage
 
 Environment variables:
     MODEL_VARIANT   "1B" (default) or "3B" — selects the tokenizer to load
@@ -49,7 +49,7 @@ def _assert_run(tokens: list, min_tokens: int = _SMOKE_TEST_MIN_TOKENS) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Structural smoke test for an existing LlamaModel .mlpackage")
+    parser = argparse.ArgumentParser(description="Structural smoke test for an existing QwenModel .mlpackage")
     parser.add_argument("--model-path", required=True, help="Path to the .mlpackage directory")
     args = parser.parse_args()
 

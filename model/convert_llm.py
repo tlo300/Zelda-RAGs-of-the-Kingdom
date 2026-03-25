@@ -3,7 +3,7 @@ convert_llm.py
 Converts Qwen2.5 1.5B or 3B Instruct from HuggingFace to a Core ML .mlpackage
 with 4-bit palettization quantization, for on-device inference on iOS.
 
-Output: model/LlamaModel-1B.mlpackage  or  model/LlamaModel-3B.mlpackage
+Output: model/QwenModel-1B.mlpackage  or  model/QwenModel-3B.mlpackage
   - Stateless model (full sequence passed each step, max 512 tokens)
   - 4-bit uniform palettization via coremltools.optimize.coreml
   - 1B output must be under 800 MB; 3B under 2 GB
@@ -61,7 +61,7 @@ def _derive_filename(variant: str) -> str:
             file=sys.stderr,
         )
         sys.exit(1)
-    return f"LlamaModel-{variant}.mlpackage"
+    return f"QwenModel-{variant}.mlpackage"
 
 
 def _parse_modelconfig_filename(swift_path: Path, variant: str) -> str:
@@ -69,10 +69,10 @@ def _parse_modelconfig_filename(swift_path: Path, variant: str) -> str:
     Read ModelConfig.swift and extract the modelFilename for the given variant.
 
     Looks for the pattern:
-        case .llama1B: return "LlamaModel-1B.mlpackage"
-        case .llama3B: return "LlamaModel-3B.mlpackage"
+        case .qwen1B: return "QwenModel-1B.mlpackage"
+        case .qwen3B: return "QwenModel-3B.mlpackage"
     """
-    swift_key = "llama1B" if variant == "1B" else "llama3B"
+    swift_key = "qwen1B" if variant == "1B" else "qwen3B"
     try:
         text = swift_path.read_text(encoding="utf-8")
     except FileNotFoundError:
@@ -291,7 +291,7 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Convert Llama 3.2 to Core ML")
+    parser = argparse.ArgumentParser(description="Convert Qwen2.5 to Core ML")
     parser.add_argument(
         "--output-dir",
         default=str(Path(__file__).parent),
