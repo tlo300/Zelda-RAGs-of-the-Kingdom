@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 3 - iOS app core
-Last completed  : #11 iOS project scaffold and ModelConfig (merged PR #45)
+Last completed  : #9 LLM Core ML conversion and quantization CI (merged PR #29, #49)
 In progress     : #12 On-device vector search service (PR #47 open)
 Blocked         : (none)
-Last session    : 2026-03-25 — completed #10, #11, started #12; PR #44/#45/#46/#47 open or merged
+Last session    : 2026-03-25 — completed #9 (Qwen2.5-1B converts + smoke test passes on macos-15); added skip_conversion workflow input; #12 in progress
 
 ---
 
@@ -210,7 +210,7 @@ Last session    : 2026-03-25 — completed #10, #11, started #12; PR #44/#45/#46
 | #6    | Embedding generation and SQLite vector DB build | 1 | merged |
 | #7    | Knowledge base validation and quality check | 1 | PR #27 |
 | #8    | Embedding model Core ML conversion (CI) | 2 | PR #28 |
-| #9    | LLM Core ML conversion and quantization (CI) | 2 | PR #29 |
+| #9    | LLM Core ML conversion and quantization (CI) | 2 | merged |
 | #10   | GitHub Actions CI workflows | 2 | merged |
 | #11   | iOS project scaffold and ModelConfig | 3 | merged |
 | #12   | On-device vector search service | 3 | PR #47 |
