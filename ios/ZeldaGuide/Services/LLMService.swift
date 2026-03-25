@@ -173,7 +173,7 @@ actor LLMService {
             return
         }
 
-        var inputTokens = tokenizer.encode(prompt)
+        var inputTokens = tokenizer.encode(ModelConfig.chatPrompt(userQuery: prompt))
         let eosID  = tokenizer.eosTokenID
         let maxNew = ModelConfig.maxOutputTokens
 

@@ -45,4 +45,13 @@ struct ModelConfig {
         Be concise and specific.
         """
     }
+
+    /// Wraps a user query in the Qwen2.5 ChatML format required by the Instruct model.
+    /// Without this wrapper the model degenerates into repetition loops.
+    /// <|im_start|> = token 151644, <|im_end|> = token 151645 in the Qwen2.5 vocabulary.
+    static func chatPrompt(userQuery: String) -> String {
+        "<|im_start|>system\n\(systemPrompt)<|im_end|>\n" +
+        "<|im_start|>user\n\(userQuery)<|im_end|>\n" +
+        "<|im_start|>assistant\n"
+    }
 }
