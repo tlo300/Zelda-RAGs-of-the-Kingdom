@@ -24,6 +24,11 @@ on:
         required: false
         default: false
         type: boolean
+      artifact_run_id:
+        description: 'Run ID to download artifact from (required when skip_conversion=true)'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   convert-embeddings:
@@ -111,6 +116,8 @@ jobs:
         with:
           name: LlamaModel-${{ github.event.inputs.model_variant }}.mlpackage
           path: model/LlamaModel-${{ github.event.inputs.model_variant }}.mlpackage
+          run-id: ${{ github.event.inputs.artifact_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Smoke test existing artifact
         if: ${{ github.event.inputs.skip_conversion == 'true' }}
