@@ -248,9 +248,9 @@ def _make_optimize_mock():
     compressed_mock.save = MagicMock()
 
     optimize_mock = MagicMock()
-    optimize_mock.palettize_weights.return_value = compressed_mock
+    optimize_mock.linear_quantize_weights.return_value = compressed_mock
     optimize_mock.OptimizationConfig = MagicMock
-    optimize_mock.OpPalettizerConfig = MagicMock
+    optimize_mock.OpLinearQuantizerConfig = MagicMock
 
     return optimize_mock, compressed_mock
 
@@ -300,11 +300,11 @@ def test_convert_calls_ct_convert(_patch_heavy):
     ct_mock.convert.assert_called_once()
 
 
-def test_convert_calls_palettize(_patch_heavy):
+def test_convert_calls_linear_quantize(_patch_heavy):
     tmp_path, _, optimize_mock, _ = _patch_heavy
     from model.convert_llm import convert
     convert(str(tmp_path), "1B", "fake-token")
-    optimize_mock.palettize_weights.assert_called_once()
+    optimize_mock.linear_quantize_weights.assert_called_once()
 
 
 def test_convert_saves_correct_filename(_patch_heavy):
