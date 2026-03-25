@@ -11,11 +11,13 @@ struct ChatMessage: Identifiable {
     let role: Role
     var text: String
     var isStreaming: Bool
+    var sources: [KnowledgeChunk]
 
-    init(role: Role, text: String = "", isStreaming: Bool = false) {
+    init(role: Role, text: String = "", isStreaming: Bool = false, sources: [KnowledgeChunk] = []) {
         self.id = UUID()
         self.role = role
         self.text = text
         self.isStreaming = isStreaming
+        self.sources = sources
     }
 }

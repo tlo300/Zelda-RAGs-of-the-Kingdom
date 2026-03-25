@@ -26,6 +26,9 @@ struct MessageBubbleView: View {
                 if message.isStreaming && message.text.isEmpty {
                     TypingIndicatorView()
                 }
+                if !isUser && !message.sources.isEmpty && !message.isStreaming {
+                    SourceAttributionView(sources: message.sources)
+                }
             }
             if !isUser { Spacer(minLength: 48) }
         }

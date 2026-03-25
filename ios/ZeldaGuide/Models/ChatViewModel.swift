@@ -56,6 +56,10 @@ final class ChatViewModel: ObservableObject {
                 if firstToken {
                     isLoading = false
                     firstToken = false
+                    let chunks = await engine.sourceChunks
+                    if let idx = messages.firstIndex(where: { $0.id == assistantID }) {
+                        messages[idx].sources = chunks
+                    }
                 }
                 if let idx = messages.firstIndex(where: { $0.id == assistantID }) {
                     messages[idx].text += token
