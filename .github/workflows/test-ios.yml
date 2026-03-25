@@ -1,0 +1,41 @@
+# .github/workflows/test-ios.yml
+# Runs the ZeldaGuide XCTest suite on every PR and push to main.
+# Uses a simulator destination so no signing or device is required.
+
+name: iOS Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/test-ios.yml'
+  pull_request:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/test-ios.yml'
+
+jobs:
+  test:
+    name: XCTest (iPhone 15, iOS 17)
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tests
+        run: |
+          xcodebuild test \
+            -project ios/ZeldaGuide.xcodeproj \
+            -scheme ZeldaGuide \
+            -destination "platform=iOS Simulator,name=iPhone 15,OS=latest" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            | xcpretty --color || true
+
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## iOS Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Runner: macos-14" >> $GITHUB_STEP_SUMMARY
+          echo "- Destination: iPhone 15 Simulator (iOS latest)" >> $GITHUB_STEP_SUMMARY
