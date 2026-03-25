@@ -1,16 +1,16 @@
 """
 convert_llm.py
-Converts Llama 3.2 1B or 3B Instruct from HuggingFace to a Core ML .mlpackage
+Converts Qwen2.5 1.5B or 3B Instruct from HuggingFace to a Core ML .mlpackage
 with 4-bit palettization quantization, for on-device inference on iOS.
 
 Output: model/LlamaModel-1B.mlpackage  or  model/LlamaModel-3B.mlpackage
   - Stateful model with KV-cache state (requires iOS 18+)
   - 4-bit palettized weights via coremltools.optimize.coreml
-  - 1B output must be under 700 MB; 3B under 2 GB
+  - 1B output must be under 800 MB; 3B under 2 GB
 
 Environment variables:
   MODEL_VARIANT  "1B" (default) or "3B"
-  HF_TOKEN       HuggingFace token — must have accepted Meta's Llama 3.2 licence
+  HF_TOKEN       HuggingFace token (Qwen2.5 models are ungated — token still needed for rate limits)
 
 Usage:
     python model/convert_llm.py [--output-dir <dir>]
@@ -36,13 +36,13 @@ from pathlib import Path
 _MODELCONFIG_PATH = Path(__file__).parent.parent / "ios" / "ZeldaGuide" / "Services" / "ModelConfig.swift"
 
 _HF_IDS = {
-    "1B": "meta-llama/Llama-3.2-1B-Instruct",
-    "3B": "meta-llama/Llama-3.2-3B-Instruct",
+    "1B": "Qwen/Qwen2.5-1.5B-Instruct",
+    "3B": "Qwen/Qwen2.5-3B-Instruct",
 }
 
 # Maximum on-disk size for the .mlpackage bundle (bytes)
 _SIZE_LIMITS = {
-    "1B": 700 * 1024 * 1024,   # 700 MB
+    "1B": 800 * 1024 * 1024,   # 800 MB  (Qwen2.5-1.5B at 4-bit ~750 MB)
     "3B": 2 * 1024 * 1024 * 1024,  # 2 GB
 }
 

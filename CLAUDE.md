@@ -10,7 +10,7 @@ which are fed to an on-device LLM to generate a contextual answer. No hallucinat
 
 ## Intended user
 Personal use - single user, no accounts, no backend, no cloud. The app and its data live entirely on the device.
-Distributed via AltStore sideloading - no Apple Developer account required.
+Distributed via SideStore sideloading - no Apple Developer account required.
 
 ---
 
@@ -20,14 +20,14 @@ The LLM is fully configurable via a single file (ModelConfig.swift). Default is 
 
 | Setting | 1B (default) | 3B (upgrade path) |
 |---------|-------------|-------------------|
-| Model | Llama 3.2 1B Instruct | Llama 3.2 3B Instruct |
-| Quantized size | ~600MB | ~1.8GB |
-| App total size | ~750MB | ~2.5GB |
+| Model | Qwen2.5 1.5B Instruct | Qwen2.5 3B Instruct |
+| Quantized size | ~750MB | ~1.5GB |
+| App total size | ~900MB | ~1.8GB |
 | Min device | Any iPhone (iOS 17) | Any iPhone (iOS 17) |
 | Speed on A15 | ~15 tok/sec | ~8 tok/sec |
 | Speed on A17 Pro | ~25 tok/sec | ~20 tok/sec |
 | Answer quality | Good for factual Q&A | Better for complex questions |
-| Distribution | AltStore free Apple ID | Paid Apple Developer account needed |
+| Distribution | SideStore free Apple ID | SideStore free Apple ID |
 
 Switching from 1B to 3B requires only:
 1. Change one constant in ModelConfig.swift
@@ -60,10 +60,10 @@ No other code changes needed anywhere.
 - knowledge_base.db bundled in the app at build time
 
 ### Distribution
-- AltStore sideloading via free Apple ID
+- SideStore sideloading via free Apple ID
 - GitHub Actions builds an unsigned .ipa artifact
-- AltStore downloads and signs it with your free Apple ID
-- AltStore Daemon auto-renews the signature every 7 days over Wi-Fi
+- SideStore signs it with your free Apple ID
+- SideStore auto-renews the signature every 7 days over the internet (no home Wi-Fi needed)
 
 ---
 
@@ -105,7 +105,7 @@ Zelda-RAGs-of-the-Kingdom/
     requirements.txt
   model/
     convert_embeddings.py     # all-MiniLM-L6-v2 -> Core ML
-    convert_llm.py            # Llama 1B or 3B -> Core ML (MODEL_VARIANT)
+    convert_llm.py            # Qwen2.5 1.5B or 3B -> Core ML (MODEL_VARIANT)
     requirements.txt
   ios/
     ZeldaGuide/
@@ -151,9 +151,9 @@ Do not change these without an ADR in docs/decisions/.
 
 - The iOS app makes zero network requests at runtime. All inference is local.
 
-- AltStore distribution uses an unsigned .ipa. AltStore signs it with the user's free Apple ID.
+- SideStore distribution uses an unsigned .ipa. SideStore signs it with the user's free Apple ID.
   The 3-app limit and 7-day expiry are the only real constraints of a free Apple ID.
-  AltStore Daemon handles auto-renewal when the phone is on the same Wi-Fi as the PC.
+  SideStore auto-renews over the internet via its built-in WireGuard VPN — no PC or home Wi-Fi needed.
 
 ---
 
