@@ -28,11 +28,11 @@ from model.convert_llm import (
 # ---------------------------------------------------------------------------
 
 def test_derive_filename_1b():
-    assert _derive_filename("1B") == "LlamaModel-1B.mlpackage"
+    assert _derive_filename("1B") == "QwenModel-1B.mlpackage"
 
 
 def test_derive_filename_3b():
-    assert _derive_filename("3B") == "LlamaModel-3B.mlpackage"
+    assert _derive_filename("3B") == "QwenModel-3B.mlpackage"
 
 
 def test_derive_filename_invalid():
@@ -54,8 +54,8 @@ def test_derive_filename_empty_string():
 _FAKE_MODELCONFIG = """\
 static var modelFilename: String {
     switch activeVariant {
-    case .llama1B: return "LlamaModel-1B.mlpackage"
-    case .llama3B: return "LlamaModel-3B.mlpackage"
+    case .qwen1B: return "QwenModel-1B.mlpackage"
+    case .qwen3B: return "QwenModel-3B.mlpackage"
     }
 }
 """
@@ -64,13 +64,13 @@ static var modelFilename: String {
 def test_parse_modelconfig_filename_1b(tmp_path):
     swift_file = tmp_path / "ModelConfig.swift"
     swift_file.write_text(_FAKE_MODELCONFIG, encoding="utf-8")
-    assert _parse_modelconfig_filename(swift_file, "1B") == "LlamaModel-1B.mlpackage"
+    assert _parse_modelconfig_filename(swift_file, "1B") == "QwenModel-1B.mlpackage"
 
 
 def test_parse_modelconfig_filename_3b(tmp_path):
     swift_file = tmp_path / "ModelConfig.swift"
     swift_file.write_text(_FAKE_MODELCONFIG, encoding="utf-8")
-    assert _parse_modelconfig_filename(swift_file, "3B") == "LlamaModel-3B.mlpackage"
+    assert _parse_modelconfig_filename(swift_file, "3B") == "QwenModel-3B.mlpackage"
 
 
 def test_parse_modelconfig_filename_missing_file(tmp_path):
@@ -92,12 +92,12 @@ def test_parse_modelconfig_filename_pattern_absent(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_assert_filename_sync_passes():
-    _assert_filename_sync("LlamaModel-1B.mlpackage", "LlamaModel-1B.mlpackage")
+    _assert_filename_sync("QwenModel-1B.mlpackage", "QwenModel-1B.mlpackage")
 
 
 def test_assert_filename_sync_exits_on_mismatch():
     with pytest.raises(SystemExit) as exc:
-        _assert_filename_sync("LlamaModel-1B.mlpackage", "LlamaModel-WRONG.mlpackage")
+        _assert_filename_sync("QwenModel-1B.mlpackage", "QwenModel-WRONG.mlpackage")
     assert exc.value.code == 1
 
 
@@ -156,14 +156,14 @@ def test_assert_smoke_test_passes_varied():
 # ---------------------------------------------------------------------------
 
 def test_assert_size_passes_small_file(tmp_path):
-    pkg = tmp_path / "LlamaModel-1B.mlpackage"
+    pkg = tmp_path / "QwenModel-1B.mlpackage"
     pkg.mkdir()
     (pkg / "weights.bin").write_bytes(b"x" * 1024)  # 1 KB
     _assert_size(pkg, "1B")  # well under 700 MB
 
 
 def test_assert_size_exits_1b_over_limit(tmp_path):
-    pkg = tmp_path / "LlamaModel-1B.mlpackage"
+    pkg = tmp_path / "QwenModel-1B.mlpackage"
     pkg.mkdir()
     limit_1b = 800 * 1024 * 1024
     # Patch stat to report oversized file without writing gigabytes
@@ -179,7 +179,7 @@ def test_assert_size_exits_1b_over_limit(tmp_path):
 
 
 def test_assert_size_exits_3b_over_limit(tmp_path):
-    pkg = tmp_path / "LlamaModel-3B.mlpackage"
+    pkg = tmp_path / "QwenModel-3B.mlpackage"
     pkg.mkdir()
     limit_3b = 2 * 1024 * 1024 * 1024
     fake_file = MagicMock()
@@ -194,7 +194,7 @@ def test_assert_size_exits_3b_over_limit(tmp_path):
 
 
 def test_assert_size_passes_3b_under_limit(tmp_path):
-    pkg = tmp_path / "LlamaModel-3B.mlpackage"
+    pkg = tmp_path / "QwenModel-3B.mlpackage"
     pkg.mkdir()
     (pkg / "weights.bin").write_bytes(b"x" * 1024)
     _assert_size(pkg, "3B")
@@ -356,14 +356,14 @@ def test_convert_saves_correct_filename(_patch_heavy):
     tmp_path, _, _, compressed_mock = _patch_heavy
     from model.convert_llm import convert
     convert(str(tmp_path), "1B", "fake-token")
-    compressed_mock.save.assert_called_once_with(str(tmp_path / "LlamaModel-1B.mlpackage"))
+    compressed_mock.save.assert_called_once_with(str(tmp_path / "QwenModel-1B.mlpackage"))
 
 
 def test_convert_exits_on_filename_mismatch(_patch_heavy):
     tmp_path, _, _, _ = _patch_heavy
     from model.convert_llm import convert
     with patch("model.convert_llm._parse_modelconfig_filename",
-               return_value="LlamaModel-WRONG.mlpackage"):
+               return_value="QwenModel-WRONG.mlpackage"):
         with pytest.raises(SystemExit) as exc:
             convert(str(tmp_path), "1B", "fake-token")
     assert exc.value.code == 1
