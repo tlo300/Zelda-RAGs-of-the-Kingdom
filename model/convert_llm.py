@@ -203,12 +203,9 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     # iPhone 12 supports iOS 18, so this does not raise the minimum device.
     print("Converting to Core ML (stateful) …")
     kv_cache_shape = (num_layers, 2, 1, num_kv_heads, max_seq, head_dim)
+    # inputs/outputs are embedded in the ExportedProgram — do not pass them again
     mlmodel = ct.convert(
         exported,
-        inputs=[
-            ct.TensorType(name="input_ids", shape=(1, ct.RangeDim(1, max_seq)), dtype=np.int32),
-            ct.TensorType(name="attention_mask", shape=(1, ct.RangeDim(1, max_seq)), dtype=np.int32),
-        ],
         outputs=[
             ct.TensorType(name="logits", dtype=np.float32),
         ],
