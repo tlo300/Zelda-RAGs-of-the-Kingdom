@@ -86,16 +86,18 @@ actor CoreMLEmbeddingService: EmbeddingService {
                 userInfo: [NSLocalizedDescriptionKey: "Model unavailable after load"]))
         }
 
-        // Placeholder tokenisation: UTF-8 bytes mapped to token IDs, clamped to 128 tokens.
+        // Placeholder tokenisation: UTF-8 bytes mapped to token IDs.
         // Replace with a proper BPE tokeniser once tokenizer.json is bundled from CI.
-        let tokens = Array(text.utf8.prefix(128)).map { Int32($0) }
-        let seqLen = max(1, tokens.count)
+        // The model was traced with a fixed seq length of 128 — always pad to that length.
+        let fixedLen = 128
+        let rawTokens = Array(text.utf8.prefix(fixedLen)).map { Int32($0) }
+        let realLen   = rawTokens.count
 
-        let inputIDs      = try MLMultiArray(shape: [1, NSNumber(value: seqLen)], dataType: .int32)
-        let attentionMask = try MLMultiArray(shape: [1, NSNumber(value: seqLen)], dataType: .int32)
-        for i in 0..<seqLen {
-            inputIDs[i]      = NSNumber(value: tokens[i])
-            attentionMask[i] = 1
+        let inputIDs      = try MLMultiArray(shape: [1, NSNumber(value: fixedLen)], dataType: .int32)
+        let attentionMask = try MLMultiArray(shape: [1, NSNumber(value: fixedLen)], dataType: .int32)
+        for i in 0..<fixedLen {
+            inputIDs[i]      = i < realLen ? NSNumber(value: rawTokens[i]) : 0
+            attentionMask[i] = i < realLen ? 1 : 0
         }
 
         let features = try MLDictionaryFeatureProvider(dictionary: [
