@@ -1,0 +1,13 @@
+{
+  "fileFormatVersion": "1.0.0",
+  "itemInfoEntries": {
+    "0": {
+      "author": "placeholder",
+      "description": "Placeholder – replace with CI artifact from convert-embeddings job in convert-model.yml",
+      "name": "MiniLMEmbedder",
+      "path": "Data/com.apple.CoreML",
+      "type": "coremldata"
+    }
+  },
+  "rootItemIdentifier": "0"
+}
