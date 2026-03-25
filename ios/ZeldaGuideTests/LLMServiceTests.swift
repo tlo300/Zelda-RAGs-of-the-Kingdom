@@ -2,6 +2,7 @@
 // XCTest unit tests for LLMService.
 // Uses injected mock predictor and tokenizer so tests run without the real Core ML model.
 
+import UIKit
 import XCTest
 @testable import ZeldaGuide
 
@@ -92,6 +93,33 @@ final class LLMServiceTests: XCTestCase {
         let finished = expectation(description: "stream1 terminates after cancellation")
         Task {
             while await iter1.next() != nil { }
+            finished.fulfill()
+        }
+        await fulfillment(of: [finished], timeout: 5.0)
+    }
+
+    // MARK: - Memory warning pauses generation
+
+    func testMemoryWarningPausesGeneration() async throws {
+        let stream = await service.generate(prompt: "Where is the Hylian Shield?")
+        var iter = stream.makeAsyncIterator()
+
+        // Consume one token to confirm generation is running.
+        let firstToken = await iter.next()
+        XCTAssertNotNil(firstToken)
+
+        // Fire a simulated memory warning on the main thread.
+        await MainActor.run {
+            NotificationCenter.default.post(
+                name: UIApplication.didReceiveMemoryWarningNotification,
+                object: nil
+            )
+        }
+
+        // Drain the stream — it must terminate (not hang) after the warning.
+        let finished = expectation(description: "stream finishes after memory warning")
+        Task {
+            while await iter.next() != nil { }
             finished.fulfill()
         }
         await fulfillment(of: [finished], timeout: 5.0)
