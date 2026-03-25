@@ -4,7 +4,7 @@ Converts Qwen2.5 1.5B or 3B Instruct from HuggingFace to a Core ML .mlpackage
 with 4-bit palettization quantization, for on-device inference on iOS.
 
 Output: model/LlamaModel-1B.mlpackage  or  model/LlamaModel-3B.mlpackage
-  - Stateful model with KV-cache state (requires iOS 18+)
+  - Stateless model (full sequence passed each step, max 512 tokens)
   - 4-bit palettized weights via coremltools.optimize.coreml
   - 1B output must be under 800 MB; 3B under 2 GB
 
@@ -177,48 +177,31 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
         f"{num_kv_heads} KV heads, head_dim={head_dim}, max_seq={max_seq}"
     )
 
-    # --- Export with torch.export (required for stateful KV-cache conversion) ---
-    print("Exporting with torch.export …")
-    # Use seq_len > 1 so torch.export doesn't infer the sequence dim as a
-    # static constant, which would conflict with the dynamic shape constraint.
+    # --- Trace with torch.jit.trace ---
+    # Stateless approach: the full sequence is passed each step (no KV cache).
+    # Simpler and more compatible than torch.export + StateType, and sufficient
+    # for a short-answer Q&A app where outputs are typically < 200 tokens.
+    # Use seq_len=8 so the tracer doesn't constant-fold the sequence dimension.
+    print("Tracing with torch.jit.trace …")
     example_inputs = (
-        torch.zeros(1, 4, dtype=torch.int64),
-        torch.zeros(1, 4, dtype=torch.int64),
+        torch.zeros(1, 8, dtype=torch.int64),
+        torch.ones(1, 8, dtype=torch.int64),
     )
-    seq_dim = torch.export.Dim("seq", min=2, max=max_seq)
-    dynamic_shapes = {
-        "input_ids": {1: seq_dim},
-        "attention_mask": {1: seq_dim},
-    }
     with torch.no_grad():
-        exported = torch.export.export(
-            model,
-            example_inputs,
-            dynamic_shapes=dynamic_shapes,
-            strict=False,  # required for models that use autocast internally
-        )
+        traced = torch.jit.trace(model, example_inputs)
 
-    # --- Core ML stateful conversion ---
-    # Stateful models (KV cache via StateType) require iOS 18+.
-    # iPhone 12 supports iOS 18, so this does not raise the minimum device.
-    print("Converting to Core ML (stateful) …")
-    kv_cache_shape = (num_layers, 2, 1, num_kv_heads, max_seq, head_dim)
-    # inputs/outputs are embedded in the ExportedProgram — do not pass them again
+    # --- Core ML conversion ---
+    # Cap dynamic sequence at 512 tokens (prompt + context + answer).
+    max_context = 512
+    print("Converting to Core ML …")
     mlmodel = ct.convert(
-        exported,
-        outputs=[
-            ct.TensorType(name="logits", dtype=np.float32),
+        traced,
+        inputs=[
+            ct.TensorType(name="input_ids", shape=(1, ct.RangeDim(1, max_context)), dtype=np.int32),
+            ct.TensorType(name="attention_mask", shape=(1, ct.RangeDim(1, max_context)), dtype=np.int32),
         ],
-        states=[
-            ct.StateType(
-                wrapped_type=ct.TensorType(
-                    shape=kv_cache_shape,
-                    dtype=np.float16,
-                ),
-                name="kv_cache",
-            )
-        ],
-        minimum_deployment_target=ct.target.iOS18,
+        outputs=[ct.TensorType(name="logits", dtype=np.float32)],
+        minimum_deployment_target=ct.target.iOS17,
         compute_units=ct.ComputeUnit.CPU_AND_NE,
     )
 
@@ -235,7 +218,6 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
 
     # --- Smoke test: generate _SMOKE_TEST_MIN_TOKENS tokens ---
     print(f"Running smoke test ({_SMOKE_TEST_MIN_TOKENS} tokens) …")
-    state = compressed.make_state()
     enc = tokenizer("What is the Hylian Shield?", return_tensors="pt")
     input_ids = enc["input_ids"].numpy().astype(np.int32)
     attention_mask = enc["attention_mask"].numpy().astype(np.int32)
@@ -244,12 +226,11 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     for _ in range(_SMOKE_TEST_MIN_TOKENS):
         output = compressed.predict(
             {"input_ids": input_ids, "attention_mask": attention_mask},
-            state=state,
         )
         next_token = int(np.argmax(output["logits"][0, -1, :]))
         generated_tokens.append(next_token)
-        input_ids = np.array([[next_token]], dtype=np.int32)
-        attention_mask = np.ones((1, attention_mask.shape[1] + 1), dtype=np.int32)
+        input_ids = np.append(input_ids, [[next_token]], axis=1).astype(np.int32)
+        attention_mask = np.ones((1, input_ids.shape[1]), dtype=np.int32)
 
     decoded = tokenizer.decode(generated_tokens, skip_special_tokens=True)
     print(f"Smoke test output: {decoded!r}")
