@@ -139,10 +139,9 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     import numpy as np
     import torch
     import coremltools as ct
-    from coremltools.optimize.coreml import (
-        OptimizationConfig,
-        OpPalettizerConfig,
-        palettize_weights,
+    from coremltools.optimize.torch.palettization import (
+        PostTrainingPalettizer,
+        PostTrainingPalettizerConfig,
     )
     import gc
     from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -191,24 +190,41 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
         f"{num_kv_heads} KV heads, head_dim={head_dim}, max_seq={max_seq}"
     )
 
-    # --- Trace with torch.jit.trace ---
-    # Stateless approach: the full sequence is passed each step (no KV cache).
-    # Simpler and more compatible than torch.export + StateType, and sufficient
-    # for a short-answer Q&A app where outputs are typically < 200 tokens.
+    # --- 4-bit torch-level palettization (pre-conversion) ---
+    # Palettize the PyTorch model weights BEFORE CoreML conversion so we never
+    # hold a large uncompressed CoreML model in memory (which OOMs the runner).
+    print("Applying 4-bit torch-level palettization …")
+    pal_config = PostTrainingPalettizerConfig.from_dict({
+        "global_config": {
+            "n_bits": 4,
+            "granularity": "per_grouped_channel",
+            "group_size": 16,
+        }
+    })
+    palettizer = PostTrainingPalettizer(wrapped, pal_config)
+    compressed_wrapped = palettizer.compress()
+    del model, wrapped
+    gc.collect()
+
+    # --- Trace the already-compressed model ---
     # Use seq_len=8 so the tracer doesn't constant-fold the sequence dimension.
-    print("Tracing with torch.jit.trace …")
+    print("Tracing compressed model with torch.jit.trace …")
     example_inputs = (
         torch.zeros(1, 8, dtype=torch.int64),
         torch.ones(1, 8, dtype=torch.int64),
     )
     with torch.no_grad():
-        traced = torch.jit.trace(wrapped, example_inputs)
+        traced = torch.jit.trace(compressed_wrapped, example_inputs)
+    del compressed_wrapped
+    gc.collect()
 
     # --- Core ML conversion ---
     # Cap dynamic sequence at 512 tokens (prompt + context + answer).
+    # coremltools recognises the torch-level palettization and produces a
+    # compressed mlpackage directly — no post-conversion quantization needed.
     max_context = 512
     print("Converting to Core ML …")
-    mlmodel = ct.convert(
+    compressed = ct.convert(
         traced,
         inputs=[
             ct.TensorType(name="input_ids", shape=(1, ct.RangeDim(1, max_context)), dtype=np.int32),
@@ -218,23 +234,7 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
         minimum_deployment_target=ct.target.iOS17,
         compute_units=ct.ComputeUnit.CPU_AND_NE,
     )
-
-    # --- 4-bit palettization (uniform mode) ---
-    # Use uniform mode (pre-computed bins) instead of kmeans — kmeans clusters
-    # all weight tensors in memory which OOMs the 14 GB CI runner.
-    print("Applying 4-bit palettization (uniform) …")
-    # Free torch model before quantizing to reduce peak memory
-    del model, wrapped, traced
-    gc.collect()
-    config = OptimizationConfig(
-        global_config=OpPalettizerConfig(
-            mode="uniform",
-            nbits=4,
-            weight_threshold=512,
-        )
-    )
-    compressed = palettize_weights(mlmodel, config)
-    del mlmodel
+    del traced
     gc.collect()
 
     # --- Smoke test: generate _SMOKE_TEST_MIN_TOKENS tokens ---
