@@ -190,7 +190,7 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 3 - iOS app core
-Last completed  : #16 Source attribution view — SourceAttributionView with DisclosureGroup, SFSafariViewController for wiki links, GFDL footer; sources field on ChatMessage; ChatViewModel reads sourceChunks after first token; PR #60
+Last completed  : #16 Source attribution view — SourceAttributionView with DisclosureGroup, SFSafariViewController for wiki links, GFDL footer; sources field on ChatMessage; ChatViewModel reads sourceChunks after first token; merged PR #60
 In progress     : #12 On-device vector search service (PR #47 open), #13 On-device LLM inference service (PR #50 open)
 Blocked         : (none)
 Last session    : 2026-03-25 — completed #16 (SourceAttributionView with top-3 chunk list, tappable wiki sources via SFSafariViewController, compendium plain label, GFDL attribution footer; sources: [KnowledgeChunk] on ChatMessage; ChatViewModel attaches chunks on first token; 1 new XCTest case)
@@ -217,7 +217,7 @@ Last session    : 2026-03-25 — completed #16 (SourceAttributionView with top-3
 | #13   | On-device LLM inference service | 3 | merged |
 | #14   | RAG engine (retrieval, prompt assembly, generation) | 3 | merged |
 | #15   | Chat UI - question input and streaming answer | 3 | merged |
-| #16   | Source attribution view | 3 | PR #60 |
+| #16   | Source attribution view | 3 | merged |
 | #17   | AltStore sideload build and distribution docs | 4 | backlog |
 | #18   | App performance tuning and model warm-up | 4 | backlog |
 
