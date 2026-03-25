@@ -5,7 +5,7 @@ with 4-bit palettization quantization, for on-device inference on iOS.
 
 Output: model/LlamaModel-1B.mlpackage  or  model/LlamaModel-3B.mlpackage
   - Stateless model (full sequence passed each step, max 512 tokens)
-  - 4-bit linear quantized weights via coremltools.optimize.coreml
+  - 4-bit uniform palettization via coremltools.optimize.coreml
   - 1B output must be under 800 MB; 3B under 2 GB
 
 Environment variables:
@@ -141,8 +141,8 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     import coremltools as ct
     from coremltools.optimize.coreml import (
         OptimizationConfig,
-        OpLinearQuantizerConfig,
-        linear_quantize_weights,
+        OpPalettizerConfig,
+        palettize_weights,
     )
     import gc
     from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -219,21 +219,21 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
         compute_units=ct.ComputeUnit.CPU_AND_NE,
     )
 
-    # --- 4-bit linear quantization ---
-    # Use linear (affine) quantization instead of k-means palettization —
-    # k-means requires clustering all weight tensors which OOMs the CI runner.
-    print("Applying 4-bit linear quantization …")
-    # Free the unquantized torch model before quantizing the mlmodel
+    # --- 4-bit palettization (uniform mode) ---
+    # Use uniform mode (pre-computed bins) instead of kmeans — kmeans clusters
+    # all weight tensors in memory which OOMs the 14 GB CI runner.
+    print("Applying 4-bit palettization (uniform) …")
+    # Free torch model before quantizing to reduce peak memory
     del model, wrapped, traced
     gc.collect()
     config = OptimizationConfig(
-        global_config=OpLinearQuantizerConfig(
-            mode="linear_symmetric",
-            dtype="int4",
+        global_config=OpPalettizerConfig(
+            mode="uniform",
+            nbits=4,
             weight_threshold=512,
         )
     )
-    compressed = linear_quantize_weights(mlmodel, config)
+    compressed = palettize_weights(mlmodel, config)
     del mlmodel
     gc.collect()
 
