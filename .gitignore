@@ -23,7 +23,9 @@ ios/.build/
 model/*.mlpackage
 model/*.gguf
 model/*.bin
-ios/ZeldaGuide/Resources/*.mlpackage
+# Ignore mlpackage model data (CI-generated); Manifest.json placeholders are committed
+ios/ZeldaGuide/Resources/MiniLMEmbedder.mlpackage/Data/
+ios/ZeldaGuide/Resources/LlamaModel*.mlpackage/
 
 # Git worktrees
 .worktrees/
