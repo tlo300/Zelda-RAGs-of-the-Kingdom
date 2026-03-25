@@ -20,7 +20,7 @@ on:
 jobs:
   convert-embeddings:
     name: Convert embedding model (all-MiniLM-L6-v2)
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
@@ -56,11 +56,11 @@ jobs:
           echo "## Embedding Model Conversion Summary" >> $GITHUB_STEP_SUMMARY
           echo "- Model: all-MiniLM-L6-v2" >> $GITHUB_STEP_SUMMARY
           echo "- Output: MiniLMEmbedder.mlpackage ($SIZE)" >> $GITHUB_STEP_SUMMARY
-          echo "- Runner: macos-14" >> $GITHUB_STEP_SUMMARY
+          echo "- Runner: macos-15" >> $GITHUB_STEP_SUMMARY
 
   convert-llm:
     name: Convert LLM (Llama ${{ github.event.inputs.model_variant }})
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       MODEL_VARIANT: ${{ github.event.inputs.model_variant }}
     steps:
@@ -99,4 +99,4 @@ jobs:
           echo "## LLM Conversion Summary" >> $GITHUB_STEP_SUMMARY
           echo "- Model variant: $MODEL_VARIANT" >> $GITHUB_STEP_SUMMARY
           echo "- Output: LlamaModel-${MODEL_VARIANT}.mlpackage ($SIZE)" >> $GITHUB_STEP_SUMMARY
-          echo "- Runner: macos-14" >> $GITHUB_STEP_SUMMARY
+          echo "- Runner: macos-15" >> $GITHUB_STEP_SUMMARY
