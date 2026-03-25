@@ -242,17 +242,21 @@ def _make_optimize_mock():
     logits = np.zeros((1, 1, vocab_size), dtype=np.float32)
     logits[0, 0, 42] = 1.0
 
+    # compressed_mock is returned by ct.convert() (torch-level palettization
+    # means ct.convert() produces the final compressed model directly)
     compressed_mock = MagicMock()
-    compressed_mock.make_state.return_value = MagicMock()
     compressed_mock.predict.return_value = {"logits": logits}
     compressed_mock.save = MagicMock()
 
-    optimize_mock = MagicMock()
-    optimize_mock.palettize_weights.return_value = compressed_mock
-    optimize_mock.OptimizationConfig = MagicMock
-    optimize_mock.OpPalettizerConfig = MagicMock
+    # torch_optimize_mock represents coremltools.optimize.torch.palettization
+    torch_optimize_mock = MagicMock()
+    palettizer_mock = MagicMock()
+    palettizer_mock.compress.return_value = MagicMock()
+    torch_optimize_mock.PostTrainingPalettizer.return_value = palettizer_mock
+    torch_optimize_mock.PostTrainingPalettizerConfig = MagicMock()
+    torch_optimize_mock.PostTrainingPalettizerConfig.from_dict.return_value = MagicMock()
 
-    return optimize_mock, compressed_mock
+    return torch_optimize_mock, compressed_mock
 
 
 @pytest.fixture
@@ -278,12 +282,16 @@ def _patch_heavy(tmp_path, monkeypatch):
     transformers_mock.AutoTokenizer.from_pretrained.return_value = tokenizer_mock
     transformers_mock.AutoModelForCausalLM.from_pretrained.return_value = model_mock
 
+    # ct.convert returns the compressed_mock directly (torch-level palettization)
+    ct_mock.convert.return_value = compressed_mock
+
     with patch.dict(sys.modules, {
         "torch": torch_mock,
         "torch.export": torch_mock.export,
         "coremltools": ct_mock,
         "coremltools.optimize": MagicMock(),
-        "coremltools.optimize.coreml": optimize_mock,
+        "coremltools.optimize.torch": MagicMock(),
+        "coremltools.optimize.torch.palettization": optimize_mock,
         "transformers": transformers_mock,
     }):
         monkeypatch.setenv("MODEL_VARIANT", "1B")
@@ -300,11 +308,11 @@ def test_convert_calls_ct_convert(_patch_heavy):
     ct_mock.convert.assert_called_once()
 
 
-def test_convert_calls_palettize(_patch_heavy):
+def test_convert_calls_palettizer(_patch_heavy):
     tmp_path, _, optimize_mock, _ = _patch_heavy
     from model.convert_llm import convert
     convert(str(tmp_path), "1B", "fake-token")
-    optimize_mock.palettize_weights.assert_called_once()
+    optimize_mock.PostTrainingPalettizer.assert_called_once()
 
 
 def test_convert_saves_correct_filename(_patch_heavy):
