@@ -166,6 +166,19 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     )
     model.eval()
 
+    # Wrap so torch.jit.trace gets a plain tensor output instead of
+    # CausalLMOutputWithPast (which the tracer cannot infer types for).
+    class _LogitsWrapper(torch.nn.Module):
+        def __init__(self, m):
+            super().__init__()
+            self.m = m
+
+        def forward(self, input_ids, attention_mask):
+            return self.m(input_ids=input_ids, attention_mask=attention_mask).logits
+
+    wrapped = _LogitsWrapper(model)
+    wrapped.eval()
+
     cfg = model.config
     num_layers = cfg.num_hidden_layers
     num_kv_heads = cfg.num_key_value_heads
@@ -188,7 +201,7 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
         torch.ones(1, 8, dtype=torch.int64),
     )
     with torch.no_grad():
-        traced = torch.jit.trace(model, example_inputs)
+        traced = torch.jit.trace(wrapped, example_inputs)
 
     # --- Core ML conversion ---
     # Cap dynamic sequence at 512 tokens (prompt + context + answer).
