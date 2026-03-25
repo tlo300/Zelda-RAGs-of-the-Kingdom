@@ -57,7 +57,14 @@ def main() -> None:
     _assert_size(model_path, variant)
 
     print(f"Running smoke test ({_SMOKE_TEST_MIN_TOKENS} tokens) …")
-    enc = tokenizer("What is the Hylian Shield?", return_tensors="pt")
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user",   "content": "What is the Hylian Shield?"},
+    ]
+    input_text = tokenizer.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True
+    )
+    enc = tokenizer(input_text, return_tensors="pt")
     input_ids = enc["input_ids"].numpy().astype(np.int32)
     attention_mask = enc["attention_mask"].numpy().astype(np.int32)
 
