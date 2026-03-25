@@ -86,7 +86,7 @@ actor CoreMLEmbeddingService: EmbeddingService {
             "input_ids":      MLFeatureValue(multiArray: inputIDs),
             "attention_mask": MLFeatureValue(multiArray: attentionMask),
         ])
-        let result = try model.prediction(from: features)
+        let result = try await model.prediction(from: features)
 
         // all-MiniLM-L6-v2 exported via coremltools uses "sentence_embedding"; fall back
         // to "embeddings" if the export script used a different output name.

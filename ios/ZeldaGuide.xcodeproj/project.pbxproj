@@ -21,6 +21,11 @@
 		AC1000000000000000000002 /* LLMServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2000000000000000000002 /* LLMServiceTests.swift */; };
 		AD1000000000000000000001 /* RAGEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2000000000000000000001 /* RAGEngine.swift */; };
 		AD1000000000000000000002 /* RAGEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2000000000000000000002 /* RAGEngineTests.swift */; };
+		AE1000000000000000000001 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE2000000000000000000001 /* ChatView.swift */; };
+		AF1000000000000000000001 /* MessageBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF2000000000000000000001 /* MessageBubbleView.swift */; };
+		AG1000000000000000000001 /* SourceAttributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AG2000000000000000000001 /* SourceAttributionView.swift */; };
+		AH1000000000000000000001 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AH2000000000000000000001 /* ChatViewModel.swift */; };
+		AI1000000000000000000001 /* ChatViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI2000000000000000000001 /* ChatViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +43,11 @@
 		AC2000000000000000000002 /* LLMServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMServiceTests.swift; sourceTree = "<group>"; };
 		AD2000000000000000000001 /* RAGEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGEngine.swift; sourceTree = "<group>"; };
 		AD2000000000000000000002 /* RAGEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGEngineTests.swift; sourceTree = "<group>"; };
+		AE2000000000000000000001 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		AF2000000000000000000001 /* MessageBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBubbleView.swift; sourceTree = "<group>"; };
+		AG2000000000000000000001 /* SourceAttributionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceAttributionView.swift; sourceTree = "<group>"; };
+		AH2000000000000000000001 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
+		AI2000000000000000000001 /* ChatViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,6 +98,7 @@
 				AB1000000000000000000003 /* VectorSearchServiceTests.swift in Sources */,
 				AC1000000000000000000002 /* LLMServiceTests.swift in Sources */,
 				AD1000000000000000000002 /* RAGEngineTests.swift in Sources */,
+				AI1000000000000000000001 /* ChatViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +130,9 @@
 			isa = PBXGroup;
 			children = (
 				AA2000000000000000000002 /* ContentView.swift */,
+				AE2000000000000000000001 /* ChatView.swift */,
+				AF2000000000000000000001 /* MessageBubbleView.swift */,
+				AG2000000000000000000001 /* SourceAttributionView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -138,6 +152,7 @@
 			isa = PBXGroup;
 			children = (
 				AB2000000000000000000001 /* KnowledgeChunk.swift */,
+				AH2000000000000000000001 /* ChatViewModel.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -148,6 +163,7 @@
 				AB2000000000000000000003 /* VectorSearchServiceTests.swift */,
 				AC2000000000000000000002 /* LLMServiceTests.swift */,
 				AD2000000000000000000002 /* RAGEngineTests.swift */,
+				AI2000000000000000000001 /* ChatViewModelTests.swift */,
 			);
 			path = ZeldaGuideTests;
 			sourceTree = "<group>";
@@ -279,6 +295,10 @@
 				AB1000000000000000000002 /* VectorSearchService.swift in Sources */,
 				AC1000000000000000000001 /* LLMService.swift in Sources */,
 				AD1000000000000000000001 /* RAGEngine.swift in Sources */,
+				AE1000000000000000000001 /* ChatView.swift in Sources */,
+				AF1000000000000000000001 /* MessageBubbleView.swift in Sources */,
+				AG1000000000000000000001 /* SourceAttributionView.swift in Sources */,
+				AH1000000000000000000001 /* ChatViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

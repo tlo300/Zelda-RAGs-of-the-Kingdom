@@ -61,7 +61,7 @@ struct CoreMLPredictor: LLMPredictor {
             "input_ids":      MLFeatureValue(multiArray: inputArr),
             "attention_mask": MLFeatureValue(multiArray: maskArr),
         ])
-        let result = try model.prediction(from: features)
+        let result = try await model.prediction(from: features)
         guard let mla = result.featureValue(for: "logits")?.multiArrayValue else {
             throw LLMError.loadFailed(NSError(
                 domain: "LLMService", code: -1,
@@ -85,9 +85,8 @@ struct BundledTokenizer: LLMTokenizer {
     }
 
     func decode(tokenID: Int32) -> String {
-        guard tokenID >= 0, tokenID < 256,
-              let scalar = Unicode.Scalar(UInt8(tokenID)) else { return "" }
-        return String(scalar)
+        guard tokenID >= 0, tokenID < 256 else { return "" }
+        return String(Unicode.Scalar(UInt8(tokenID)))
     }
 }
 
