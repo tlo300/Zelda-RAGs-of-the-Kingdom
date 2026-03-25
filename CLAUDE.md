@@ -23,7 +23,7 @@ The LLM is fully configurable via a single file (ModelConfig.swift). Default is 
 | Model | Qwen2.5 1.5B Instruct | Qwen2.5 3B Instruct |
 | Quantized size | ~750MB | ~1.5GB |
 | App total size | ~900MB | ~1.8GB |
-| Min device | Any iPhone (iOS 17) | Any iPhone (iOS 17) |
+| Min device | Any iPhone (iOS 18) | Any iPhone (iOS 18) |
 | Speed on A15 | ~15 tok/sec | ~8 tok/sec |
 | Speed on A17 Pro | ~25 tok/sec | ~20 tok/sec |
 | Answer quality | Good for factual Q&A | Better for complex questions |
