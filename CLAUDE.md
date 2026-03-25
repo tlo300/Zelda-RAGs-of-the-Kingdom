@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #17 AltStore sideload build and distribution docs — model_variant input on build-ipa.yml, expanded docs/build.md, fixed Qwen model names in docs/upgrade-to-3b.md and README; merged PR #61
-In progress     : #17 model conversion rerun (convert-model CI job running with corrected QwenModel naming)
+Last completed  : #17 AltStore sideload build and distribution docs — fully done including device test; .ipa builds and installs via SideStore; fixed 3 rounds of build errors (missing files in xcodeproj, async await on MLModel, runtime .mlpackage compilation with caching)
+In progress     : (none)
 Blocked         : (none)
-Last session    : 2026-03-25 — completed #17 (build-ipa.yml model_variant input + job summary; full docs/build.md rewrite with SideStore setup, transfer, troubleshooting; upgrade-to-3b.md fixed Llama→Qwen names and mlpackage filenames; README iOS 18+ requirement and install section)
+Last session    : 2026-03-26 — #17 device tested (app loads, chat UI works); fixed missing Swift files in xcodeproj (ChatView, MessageBubbleView, SourceAttributionView, ChatViewModel, ChatMessage); fixed MLModel.load needing compiled .mlmodelc — added compileAndCache() to LLMService and CoreMLEmbeddingService; #64 created (auto-publish .ipa to GitHub Release)
 
 ---
 
@@ -218,7 +218,7 @@ Last session    : 2026-03-25 — completed #17 (build-ipa.yml model_variant inpu
 | #14   | RAG engine (retrieval, prompt assembly, generation) | 3 | merged |
 | #15   | Chat UI - question input and streaming answer | 3 | merged |
 | #16   | Source attribution view | 3 | merged |
-| #17   | AltStore sideload build and distribution docs | 4 | merged (model rerun in progress) |
+| #17   | AltStore sideload build and distribution docs | 4 | merged |
 | #18   | App performance tuning and model warm-up | 4 | backlog |
 
 ---
