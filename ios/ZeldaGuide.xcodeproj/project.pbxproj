@@ -17,6 +17,8 @@
 		AB1000000000000000000002 /* VectorSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000002 /* VectorSearchService.swift */; };
 		AB1000000000000000000003 /* VectorSearchServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000003 /* VectorSearchServiceTests.swift */; };
 		AB1000000000000000000004 /* SQLiteVec in Frameworks */ = {isa = PBXBuildFile; productRef = ABC000000000000000000001 /* SQLiteVec */; };
+		AC1000000000000000000001 /* LLMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2000000000000000000001 /* LLMService.swift */; };
+		AC1000000000000000000002 /* LLMServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2000000000000000000002 /* LLMServiceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +32,8 @@
 		AB2000000000000000000002 /* VectorSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorSearchService.swift; sourceTree = "<group>"; };
 		AB2000000000000000000003 /* VectorSearchServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorSearchServiceTests.swift; sourceTree = "<group>"; };
 		AB2000000000000000000004 /* ZeldaGuideTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ZeldaGuideTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC2000000000000000000001 /* LLMService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMService.swift; sourceTree = "<group>"; };
+		AC2000000000000000000002 /* LLMServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMServiceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +82,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AB1000000000000000000003 /* VectorSearchServiceTests.swift in Sources */,
+				AC1000000000000000000002 /* LLMServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,6 +123,7 @@
 			children = (
 				AA2000000000000000000003 /* ModelConfig.swift */,
 				AB2000000000000000000002 /* VectorSearchService.swift */,
+				AC2000000000000000000001 /* LLMService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -134,6 +140,7 @@
 			isa = PBXGroup;
 			children = (
 				AB2000000000000000000003 /* VectorSearchServiceTests.swift */,
+				AC2000000000000000000002 /* LLMServiceTests.swift */,
 			);
 			path = ZeldaGuideTests;
 			sourceTree = "<group>";
@@ -263,6 +270,7 @@
 				AA1000000000000000000003 /* ModelConfig.swift in Sources */,
 				AB1000000000000000000001 /* KnowledgeChunk.swift in Sources */,
 				AB1000000000000000000002 /* VectorSearchService.swift in Sources */,
+				AC1000000000000000000001 /* LLMService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
