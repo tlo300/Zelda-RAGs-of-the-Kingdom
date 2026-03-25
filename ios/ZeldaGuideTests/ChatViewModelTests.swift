@@ -27,6 +27,52 @@ final class ChatViewModelTests: XCTestCase {
         return ChatViewModel(ragEngine: engine)
     }
 
+    /// Builds a ChatViewModel backed by a RAGEngine with one retrievable chunk.
+    private func makeViewModelWithChunk() async throws -> ChatViewModel {
+        try SQLiteVec.initialize()
+        let db = try Database(.inMemory)
+        try await populateSchemaWithChunk(db)
+        let vectorSearch = VectorSearchService(database: db)
+        let predictor    = SequencePredictor(sequence: [42])
+        let tokenizer    = WordTokenizer(map: [42: "found"])
+        let llm          = LLMService(predictor: predictor, tokenizer: tokenizer)
+        let embedder     = MockEmbeddingService(primaryDimension: 0)
+        let engine       = RAGEngine(embedder: embedder, vectorSearch: vectorSearch, llm: llm)
+        return ChatViewModel(ragEngine: engine)
+    }
+
+    /// Schema with one row so vector search returns a chunk.
+    private func populateSchemaWithChunk(_ db: Database) async throws {
+        let dims = ModelConfig.embeddingDimensions
+        try await db.execute(
+            "CREATE VIRTUAL TABLE chunk_embeddings USING vec0(embedding float[\(dims)])")
+        try await db.execute("""
+            CREATE TABLE chunks (
+                id          INTEGER PRIMARY KEY,
+                chunk_text  TEXT    NOT NULL,
+                source      TEXT    NOT NULL,
+                page_title  TEXT    NOT NULL,
+                chunk_index INTEGER NOT NULL
+            )
+            """)
+        try await db.execute("""
+            CREATE VIRTUAL TABLE chunks_fts USING fts5(
+                chunk_text,
+                content='chunks',
+                content_rowid='id'
+            )
+            """)
+        try await db.execute(
+            "INSERT INTO chunks (id, chunk_text, source, page_title, chunk_index) VALUES (1, 'Shield in castle.', 'zelda_wiki', 'Hylian Shield', 0)")
+        try await db.execute(
+            "INSERT INTO chunks_fts (rowid, chunk_text) VALUES (1, 'Shield in castle.')")
+        var embedding = [Float](repeating: 0.0, count: dims)
+        embedding[0] = 1.0
+        try await db.execute(
+            "INSERT INTO chunk_embeddings (rowid, embedding) VALUES (1, ?)",
+            params: [embedding])
+    }
+
     /// Populates an empty schema (vec0 + chunks + FTS5 tables, no rows).
     private func populateEmptySchema(_ db: Database) async throws {
         let dims = ModelConfig.embeddingDimensions
@@ -126,5 +172,26 @@ final class ChatViewModelTests: XCTestCase {
         XCTAssertEqual(vm.messages.last?.isStreaming, false)
         XCTAssertFalse(vm.messages.last?.text.isEmpty ?? true,
             "Completed assistant message must have non-empty text")
+    }
+
+    func testSourcesAttachedToAssistantMessageAfterGeneration() async throws {
+        let vm = try await makeViewModelWithChunk()
+        vm.inputText = "Where is the Hylian Shield?"
+        vm.send()
+
+        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+        while vm.isGenerating {
+            try await Task.sleep(for: .milliseconds(20))
+            if ContinuousClock.now > deadline {
+                XCTFail("Generation did not complete within 5 seconds")
+                return
+            }
+        }
+
+        let assistant = vm.messages.last
+        XCTAssertEqual(assistant?.role, .assistant)
+        XCTAssertFalse(assistant?.sources.isEmpty ?? true,
+            "Assistant message must have sources populated when chunks are retrieved")
+        XCTAssertEqual(assistant?.sources.first?.pageTitle, "Hylian Shield")
     }
 }
