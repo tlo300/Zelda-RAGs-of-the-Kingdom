@@ -156,8 +156,8 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     print(f"Filename sync OK: {derived}")
 
     hf_id = _HF_IDS[variant]
-    # 3B is too large in float32 on the 14 GB CI runner — use float16
-    torch_dtype = torch.float16 if variant == "3B" else torch.float32
+    # Use float16 for both variants — float32 OOMs the 14 GB CI runner
+    torch_dtype = torch.float16
 
     print(f"Loading {hf_id} …")
     tokenizer = AutoTokenizer.from_pretrained(hf_id, token=hf_token)
