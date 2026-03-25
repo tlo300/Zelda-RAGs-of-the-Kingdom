@@ -140,7 +140,7 @@ def test_assert_size_passes_small_file(tmp_path):
 def test_assert_size_exits_1b_over_limit(tmp_path):
     pkg = tmp_path / "LlamaModel-1B.mlpackage"
     pkg.mkdir()
-    limit_1b = 700 * 1024 * 1024
+    limit_1b = 800 * 1024 * 1024
     # Patch stat to report oversized file without writing gigabytes
     fake_file = MagicMock()
     fake_stat = MagicMock()
