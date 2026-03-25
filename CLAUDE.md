@@ -189,11 +189,11 @@ Create docs/decisions/NNN-short-title.md with:
 ---
 
 ## Current state
-Active milestone : 3 - iOS app core
-Last completed  : #16 Source attribution view — SourceAttributionView with DisclosureGroup, SFSafariViewController for wiki links, GFDL footer; sources field on ChatMessage; ChatViewModel reads sourceChunks after first token; merged PR #60
-In progress     : #12 On-device vector search service (PR #47 open), #13 On-device LLM inference service (PR #50 open)
+Active milestone : 4 - Polish and distribution
+Last completed  : #17 AltStore sideload build and distribution docs — model_variant input on build-ipa.yml, expanded docs/build.md, fixed Qwen model names in docs/upgrade-to-3b.md and README; merged PR #61
+In progress     : (none)
 Blocked         : (none)
-Last session    : 2026-03-25 — completed #16 (SourceAttributionView with top-3 chunk list, tappable wiki sources via SFSafariViewController, compendium plain label, GFDL attribution footer; sources: [KnowledgeChunk] on ChatMessage; ChatViewModel attaches chunks on first token; 1 new XCTest case)
+Last session    : 2026-03-25 — completed #17 (build-ipa.yml model_variant input + job summary; full docs/build.md rewrite with SideStore setup, transfer, troubleshooting; upgrade-to-3b.md fixed Llama→Qwen names and mlpackage filenames; README iOS 18+ requirement and install section)
 
 ---
 
@@ -218,7 +218,7 @@ Last session    : 2026-03-25 — completed #16 (SourceAttributionView with top-3
 | #14   | RAG engine (retrieval, prompt assembly, generation) | 3 | merged |
 | #15   | Chat UI - question input and streaming answer | 3 | merged |
 | #16   | Source attribution view | 3 | merged |
-| #17   | AltStore sideload build and distribution docs | 4 | backlog |
+| #17   | AltStore sideload build and distribution docs | 4 | merged |
 | #18   | App performance tuning and model warm-up | 4 | backlog |
 
 ---
