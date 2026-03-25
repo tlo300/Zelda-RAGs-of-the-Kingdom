@@ -28,6 +28,13 @@ name: Build iOS .ipa
 
 on:
   workflow_dispatch:
+    inputs:
+      model_variant:
+        description: 'Model variant bundled in the .ipa (1B or 3B)'
+        required: true
+        default: '1B'
+        type: choice
+        options: ['1B', '3B']
 
 jobs:
   build-ipa:
@@ -74,5 +81,6 @@ jobs:
           echo "## Build .ipa Summary" >> $GITHUB_STEP_SUMMARY
           echo "- Runner: macos-14" >> $GITHUB_STEP_SUMMARY
           echo "- Artifact: ZeldaGuide.ipa" >> $GITHUB_STEP_SUMMARY
+          echo "- Model variant: Qwen2.5 ${{ inputs.model_variant }}" >> $GITHUB_STEP_SUMMARY
           echo "- Size: ${{ steps.ipa_size.outputs.size }}" >> $GITHUB_STEP_SUMMARY
           echo "- Signing: unsigned (AltStore / SideStore)" >> $GITHUB_STEP_SUMMARY
