@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 3 - iOS app core
-Last completed  : #9 LLM Core ML conversion and quantization (CI) — fully green after fixing degenerate-check to warning (CI lacks Neural Engine; quality validated on device)
+Last completed  : #14 RAG engine — RAGEngine actor wiring EmbeddingService + VectorSearchService + LLMService; merged PR #58
 In progress     : #12 On-device vector search service (PR #47 open), #13 On-device LLM inference service (PR #50 open)
 Blocked         : (none)
-Last session    : 2026-03-25 — completed #13 (LLMService actor with AsyncStream streaming, cancellation, memory warning, protocol injection for tests); fixed #9 CI smoke test (degenerate check downgraded to warning); #12 still open
+Last session    : 2026-03-25 — completed #14 (RAGEngine actor, EmbeddingService protocol, CoreMLEmbeddingService lazy loader, grounded prompt assembly, zero-results LLM call, NaN guard, sourceChunks for attribution UI, 5 XCTest cases)
 
 ---
 
@@ -215,7 +215,7 @@ Last session    : 2026-03-25 — completed #13 (LLMService actor with AsyncStrea
 | #11   | iOS project scaffold and ModelConfig | 3 | merged |
 | #12   | On-device vector search service | 3 | PR #47 |
 | #13   | On-device LLM inference service | 3 | PR #50 |
-| #14   | RAG engine (retrieval, prompt assembly, generation) | 3 | backlog |
+| #14   | RAG engine (retrieval, prompt assembly, generation) | 3 | merged |
 | #15   | Chat UI - question input and streaming answer | 3 | backlog |
 | #16   | Source attribution view | 3 | backlog |
 | #17   | AltStore sideload build and distribution docs | 4 | backlog |
