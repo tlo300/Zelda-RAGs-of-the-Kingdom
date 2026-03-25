@@ -231,7 +231,7 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
             ct.TensorType(name="attention_mask", shape=(1, ct.RangeDim(1, max_context)), dtype=np.int32),
         ],
         outputs=[ct.TensorType(name="logits", dtype=np.float32)],
-        minimum_deployment_target=ct.target.iOS17,
+        minimum_deployment_target=ct.target.iOS18,  # grouped palettization requires iOS 18+
         compute_units=ct.ComputeUnit.CPU_AND_NE,
     )
     del traced
