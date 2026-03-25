@@ -5,7 +5,7 @@ with 4-bit palettization quantization, for on-device inference on iOS.
 
 Output: model/LlamaModel-1B.mlpackage  or  model/LlamaModel-3B.mlpackage
   - Stateless model (full sequence passed each step, max 512 tokens)
-  - 4-bit palettized weights via coremltools.optimize.coreml
+  - 4-bit linear quantized weights via coremltools.optimize.coreml
   - 1B output must be under 800 MB; 3B under 2 GB
 
 Environment variables:
@@ -141,9 +141,10 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     import coremltools as ct
     from coremltools.optimize.coreml import (
         OptimizationConfig,
-        OpPalettizerConfig,
-        palettize_weights,
+        OpLinearQuantizerConfig,
+        linear_quantize_weights,
     )
+    import gc
     from transformers import AutoTokenizer, AutoModelForCausalLM
 
     out_path = Path(output_dir)
@@ -218,16 +219,23 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
         compute_units=ct.ComputeUnit.CPU_AND_NE,
     )
 
-    # --- 4-bit palettization ---
-    print("Applying 4-bit palettization …")
+    # --- 4-bit linear quantization ---
+    # Use linear (affine) quantization instead of k-means palettization —
+    # k-means requires clustering all weight tensors which OOMs the CI runner.
+    print("Applying 4-bit linear quantization …")
+    # Free the unquantized torch model before quantizing the mlmodel
+    del model, wrapped, traced
+    gc.collect()
     config = OptimizationConfig(
-        global_config=OpPalettizerConfig(
-            mode="kmeans",
-            nbits=4,
+        global_config=OpLinearQuantizerConfig(
+            mode="linear_symmetric",
+            dtype="int4",
             weight_threshold=512,
         )
     )
-    compressed = palettize_weights(mlmodel, config)
+    compressed = linear_quantize_weights(mlmodel, config)
+    del mlmodel
+    gc.collect()
 
     # --- Smoke test: generate _SMOKE_TEST_MIN_TOKENS tokens ---
     print(f"Running smoke test ({_SMOKE_TEST_MIN_TOKENS} tokens) …")
