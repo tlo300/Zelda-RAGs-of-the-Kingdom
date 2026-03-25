@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #17 AltStore sideload build and distribution docs — fully done including device test; .ipa builds and installs via SideStore; fixed 3 rounds of build errors (missing files in xcodeproj, async await on MLModel, runtime .mlpackage compilation with caching)
+Last completed  : #66 fix bundle real Core ML models — MiniLMEmbedder placeholder replaced at build time via convert_embeddings.py; QwenModel-1B.mlpackage placeholder + xcodeproj entry added; build-ipa.yml now takes llm_run_id and downloads real LLM artifact before archiving
 In progress     : (none)
-Blocked         : (none)
-Last session    : 2026-03-26 — #17 device tested (app loads, chat UI works); fixed missing Swift files in xcodeproj (ChatView, MessageBubbleView, SourceAttributionView, ChatViewModel, ChatMessage); fixed MLModel.load needing compiled .mlmodelc — added compileAndCache() to LLMService and CoreMLEmbeddingService; #64 created (auto-publish .ipa to GitHub Release)
+Blocked         : needs HF_TOKEN secret + successful convert-model.yml run before build-ipa.yml can produce a working .ipa
+Last session    : 2026-03-26 — device test revealed embedding model error (Item does not exist for identifier: 0); root cause: build-ipa.yml never injected real models, only placeholders; fixed in #66/#67
 
 ---
 
@@ -219,6 +219,7 @@ Last session    : 2026-03-26 — #17 device tested (app loads, chat UI works); f
 | #15   | Chat UI - question input and streaming answer | 3 | merged |
 | #16   | Source attribution view | 3 | merged |
 | #17   | AltStore sideload build and distribution docs | 4 | merged |
+| #66   | Fix bundle real Core ML models in .ipa | 4 | merged |
 | #18   | App performance tuning and model warm-up | 4 | backlog |
 
 ---
