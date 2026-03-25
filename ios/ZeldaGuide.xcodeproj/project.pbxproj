@@ -41,7 +41,6 @@
 			children = (
 				AA4000000000000000000002 /* ZeldaGuide */,
 				AA4000000000000000000006 /* Products */,
-				AA4000000000000000000007 /* Packages */,
 			);
 			sourceTree = "<group>";
 		};
@@ -87,14 +86,6 @@
 				AA2000000000000000000006 /* ZeldaGuide.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		AA4000000000000000000007 /* Packages */ = {
-			isa = PBXGroup;
-			children = (
-				AAB000000000000000000001 /* XCRemoteSwiftPackageReference "SQLiteVec" */,
-			);
-			name = Packages;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
