@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 3 - iOS app core
-Last completed  : #9 LLM Core ML conversion and quantization CI (merged PR #29, #49)
+Last completed  : #13 On-device LLM inference service (PR #50 open)
 In progress     : #12 On-device vector search service (PR #47 open)
 Blocked         : (none)
-Last session    : 2026-03-25 — completed #9 (Qwen2.5-1B converts + smoke test passes on macos-15); added skip_conversion workflow input; #12 in progress
+Last session    : 2026-03-25 — completed #13 (LLMService actor with AsyncStream streaming, cancellation, memory warning, protocol injection for tests); #12 still open
 
 ---
 
@@ -214,7 +214,7 @@ Last session    : 2026-03-25 — completed #9 (Qwen2.5-1B converts + smoke test 
 | #10   | GitHub Actions CI workflows | 2 | merged |
 | #11   | iOS project scaffold and ModelConfig | 3 | merged |
 | #12   | On-device vector search service | 3 | PR #47 |
-| #13   | On-device LLM inference service | 3 | backlog |
+| #13   | On-device LLM inference service | 3 | PR #50 |
 | #14   | RAG engine (retrieval, prompt assembly, generation) | 3 | backlog |
 | #15   | Chat UI - question input and streaming answer | 3 | backlog |
 | #16   | Source attribution view | 3 | backlog |
