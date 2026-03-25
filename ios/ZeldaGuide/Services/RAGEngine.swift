@@ -54,10 +54,26 @@ actor CoreMLEmbeddingService: EmbeddingService {
         do {
             let config = MLModelConfiguration()
             config.computeUnits = .cpuAndNeuralEngine
-            model = try await MLModel.load(contentsOf: modelURL, configuration: config)
+            let compiledURL = try await compileAndCache(modelURL)
+            model = try await MLModel.load(contentsOf: compiledURL, configuration: config)
         } catch {
             throw EmbeddingError.loadFailed(error)
         }
+    }
+
+    /// Compiles a .mlpackage to a .mlmodelc and caches it in Library/Caches.
+    /// Subsequent calls return the cached URL immediately.
+    private func compileAndCache(_ sourceURL: URL) async throws -> URL {
+        let fm = FileManager.default
+        let cacheDir = fm.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("CompiledModels", isDirectory: true)
+        let cachedURL = cacheDir.appendingPathComponent(sourceURL.lastPathComponent + "c")
+        if fm.fileExists(atPath: cachedURL.path) { return cachedURL }
+        try fm.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        let tmpURL = try await MLModel.compileModel(at: sourceURL)
+        try? fm.removeItem(at: cachedURL)
+        try fm.moveItem(at: tmpURL, to: cachedURL)
+        return cachedURL
     }
 
     /// Embeds `text` using the Core ML all-MiniLM-L6-v2 model.
