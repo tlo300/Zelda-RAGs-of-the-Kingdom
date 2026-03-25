@@ -13,6 +13,10 @@
 		AA1000000000000000000004 /* knowledge_base.db in Resources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000004 /* knowledge_base.db */; };
 		AA1000000000000000000005 /* MiniLMEmbedder.mlpackage in Resources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000005 /* MiniLMEmbedder.mlpackage */; };
 		AA1000000000000000000006 /* SQLiteVec in Frameworks */ = {isa = PBXBuildFile; productRef = AAC000000000000000000001 /* SQLiteVec */; };
+		AB1000000000000000000001 /* KnowledgeChunk.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000001 /* KnowledgeChunk.swift */; };
+		AB1000000000000000000002 /* VectorSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000002 /* VectorSearchService.swift */; };
+		AB1000000000000000000003 /* VectorSearchServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000003 /* VectorSearchServiceTests.swift */; };
+		AB1000000000000000000004 /* SQLiteVec in Frameworks */ = {isa = PBXBuildFile; productRef = ABC000000000000000000001 /* SQLiteVec */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -22,6 +26,10 @@
 		AA2000000000000000000004 /* knowledge_base.db */ = {isa = PBXFileReference; lastKnownFileType = file; path = knowledge_base.db; sourceTree = "<group>"; };
 		AA2000000000000000000005 /* MiniLMEmbedder.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder; path = MiniLMEmbedder.mlpackage; sourceTree = "<group>"; };
 		AA2000000000000000000006 /* ZeldaGuide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZeldaGuide.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB2000000000000000000001 /* KnowledgeChunk.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowledgeChunk.swift; sourceTree = "<group>"; };
+		AB2000000000000000000002 /* VectorSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorSearchService.swift; sourceTree = "<group>"; };
+		AB2000000000000000000003 /* VectorSearchServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorSearchServiceTests.swift; sourceTree = "<group>"; };
+		AB2000000000000000000004 /* ZeldaGuideTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ZeldaGuideTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -35,11 +43,52 @@
 		};
 /* End PBXFrameworksBuildPhase section */
 
+/* Begin PBXContainerItemProxy section */
+		AB6000000000000000000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA6000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA5000000000000000000001;
+			remoteInfo = ZeldaGuide;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		AB6000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA5000000000000000000001 /* ZeldaGuide */;
+			targetProxy = AB6000000000000000000002 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXFrameworksBuildPhase section (ZeldaGuideTests) */
+		AB3000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB1000000000000000000004 /* SQLiteVec in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section (ZeldaGuideTests) */
+
+/* Begin PBXSourcesBuildPhase section (ZeldaGuideTests) */
+		AB8000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB1000000000000000000003 /* VectorSearchServiceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section (ZeldaGuideTests) */
+
 /* Begin PBXGroup section */
 		AA4000000000000000000001 /* / */ = {
 			isa = PBXGroup;
 			children = (
 				AA4000000000000000000002 /* ZeldaGuide */,
+				AB4000000000000000000002 /* ZeldaGuideTests */,
 				AA4000000000000000000006 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -50,6 +99,7 @@
 				AA2000000000000000000001 /* ZeldaGuideApp.swift */,
 				AA4000000000000000000003 /* Views */,
 				AA4000000000000000000004 /* Services */,
+				AB4000000000000000000001 /* Models */,
 				AA4000000000000000000005 /* Resources */,
 			);
 			path = ZeldaGuide;
@@ -67,8 +117,25 @@
 			isa = PBXGroup;
 			children = (
 				AA2000000000000000000003 /* ModelConfig.swift */,
+				AB2000000000000000000002 /* VectorSearchService.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		AB4000000000000000000001 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				AB2000000000000000000001 /* KnowledgeChunk.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		AB4000000000000000000002 /* ZeldaGuideTests */ = {
+			isa = PBXGroup;
+			children = (
+				AB2000000000000000000003 /* VectorSearchServiceTests.swift */,
+			);
+			path = ZeldaGuideTests;
 			sourceTree = "<group>";
 		};
 		AA4000000000000000000005 /* Resources */ = {
@@ -84,6 +151,7 @@
 			isa = PBXGroup;
 			children = (
 				AA2000000000000000000006 /* ZeldaGuide.app */,
+				AB2000000000000000000004 /* ZeldaGuideTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -111,6 +179,26 @@
 			productReference = AA2000000000000000000006 /* ZeldaGuide.app */;
 			productType = "com.apple.product-type.application";
 		};
+		AB5000000000000000000001 /* ZeldaGuideTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ABA000000000000000000001 /* Build configuration list for PBXNativeTarget "ZeldaGuideTests" */;
+			buildPhases = (
+				AB8000000000000000000001 /* Sources */,
+				AB3000000000000000000001 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AB6000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = ZeldaGuideTests;
+			packageProductDependencies = (
+				ABC000000000000000000001 /* SQLiteVec */,
+			);
+			productName = ZeldaGuideTests;
+			productReference = AB2000000000000000000004 /* ZeldaGuideTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -124,6 +212,10 @@
 				TargetAttributes = {
 					AA5000000000000000000001 = {
 						CreatedOnToolsVersion = 15.0;
+					};
+					AB5000000000000000000001 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = AA5000000000000000000001;
 					};
 				};
 			};
@@ -144,6 +236,7 @@
 			projectRoot = "";
 			targets = (
 				AA5000000000000000000001 /* ZeldaGuide */,
+				AB5000000000000000000001 /* ZeldaGuideTests */,
 			);
 		};
 /* End PBXProject section */
@@ -168,6 +261,8 @@
 				AA1000000000000000000001 /* ZeldaGuideApp.swift in Sources */,
 				AA1000000000000000000002 /* ContentView.swift in Sources */,
 				AA1000000000000000000003 /* ModelConfig.swift in Sources */,
+				AB1000000000000000000001 /* KnowledgeChunk.swift in Sources */,
+				AB1000000000000000000002 /* VectorSearchService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -345,6 +440,34 @@
 			};
 			name = Release;
 		};
+		AB9000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.tlo300.ZeldaGuideTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.9;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ZeldaGuide.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ZeldaGuide";
+			};
+			name = Debug;
+		};
+		AB9000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.tlo300.ZeldaGuideTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.9;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ZeldaGuide.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ZeldaGuide";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -366,6 +489,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		ABA000000000000000000001 /* Build configuration list for PBXNativeTarget "ZeldaGuideTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AB9000000000000000000001 /* Debug */,
+				AB9000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -381,6 +513,11 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		AAC000000000000000000001 /* SQLiteVec */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AAB000000000000000000001 /* XCRemoteSwiftPackageReference "SQLiteVec" */;
+			productName = SQLiteVec;
+		};
+		ABC000000000000000000001 /* SQLiteVec */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = AAB000000000000000000001 /* XCRemoteSwiftPackageReference "SQLiteVec" */;
 			productName = SQLiteVec;
