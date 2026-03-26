@@ -213,7 +213,8 @@ final class RAGEngineTests: XCTestCase {
         // than crashing or hanging.
         let llm = LLMService()
         var tokens: [String] = []
-        for await token in llm.generate(prompt: "test") {
+        let stream = await llm.generate(prompt: "test")
+        for await token in stream {
             tokens.append(token)
         }
         XCTAssertTrue(
