@@ -64,10 +64,11 @@ jobs:
       - name: Convert embedding model (MiniLMEmbedder)
         run: python model/convert_embeddings.py --output-dir model/
 
-      - name: Inject MiniLMEmbedder into Resources
+      - name: Compile MiniLMEmbedder to .mlmodelc and inject into Resources
         run: |
-          rm -rf ios/ZeldaGuide/Resources/MiniLMEmbedder.mlpackage
-          cp -r model/MiniLMEmbedder.mlpackage ios/ZeldaGuide/Resources/MiniLMEmbedder.mlpackage
+          xcrun coremlcompiler compile model/MiniLMEmbedder.mlpackage model/
+          rm -rf ios/ZeldaGuide/Resources/MiniLMEmbedder.mlmodelc
+          mv model/MiniLMEmbedder.mlmodelc ios/ZeldaGuide/Resources/MiniLMEmbedder.mlmodelc
 
       - name: Download QwenModel artifact
         uses: actions/download-artifact@v4
@@ -76,6 +77,14 @@ jobs:
           path: ios/ZeldaGuide/Resources/QwenModel-${{ inputs.model_variant }}.mlpackage
           run-id: ${{ inputs.llm_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compile QwenModel to .mlmodelc
+        run: |
+          VARIANT="${{ inputs.model_variant }}"
+          xcrun coremlcompiler compile \
+            "ios/ZeldaGuide/Resources/QwenModel-${VARIANT}.mlpackage" \
+            "ios/ZeldaGuide/Resources/"
+          rm -rf "ios/ZeldaGuide/Resources/QwenModel-${VARIANT}.mlpackage"
 
       - name: Download tokenizer.json artifact
         uses: actions/download-artifact@v4

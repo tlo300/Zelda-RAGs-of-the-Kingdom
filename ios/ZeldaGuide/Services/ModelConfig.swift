@@ -19,8 +19,8 @@ struct ModelConfig {
 
     static var modelFilename: String {
         switch activeVariant {
-        case .qwen1B: return "QwenModel-1B.mlpackage"
-        case .qwen3B: return "QwenModel-3B.mlpackage"
+        case .qwen1B: return "QwenModel-1B.mlmodelc"
+        case .qwen3B: return "QwenModel-3B.mlmodelc"
         }
     }
 
@@ -34,7 +34,7 @@ struct ModelConfig {
     static var maxOutputTokens: Int { 512 }
     static var ragTopK: Int { 5 }
     static var embeddingDimensions: Int { 384 }
-    static var embeddingModelFilename: String { "MiniLMEmbedder.mlpackage" }
+    static var embeddingModelFilename: String { "MiniLMEmbedder.mlmodelc" }
     static var knowledgeBaseFilename: String { "knowledge_base.db" }
 
     static var systemPrompt: String {

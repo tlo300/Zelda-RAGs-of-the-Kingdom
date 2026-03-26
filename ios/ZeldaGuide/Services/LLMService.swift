@@ -132,9 +132,12 @@ actor LLMService {
         registerMemoryWarningHandler()
     }
 
-    /// Compiles a .mlpackage to a .mlmodelc and caches it in Library/Caches.
-    /// Subsequent calls return the cached URL immediately.
+    /// Returns a compiled .mlmodelc URL ready for MLModel.load.
+    /// If the bundle already contains a pre-compiled .mlmodelc (CI builds), it is
+    /// returned directly — no on-device compilation, no memory spike.
+    /// Falls back to compiling a .mlpackage and caching the result for dev builds.
     private func compileAndCache(_ sourceURL: URL) async throws -> URL {
+        if sourceURL.pathExtension == "mlmodelc" { return sourceURL }
         let fm = FileManager.default
         let cacheDir = fm.urls(for: .cachesDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("CompiledModels", isDirectory: true)
