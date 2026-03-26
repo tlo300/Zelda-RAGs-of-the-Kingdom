@@ -174,6 +174,28 @@ jobs:
             --autoquery
           echo "App launched with --autoquery"
 
+      - name: Quick startup check (60s fast-fail)
+        run: |
+          # Wait 60 seconds then check if the app is already dead or erroring.
+          # Catches: missing resources, immediate crashes, startup exceptions.
+          # Saves 44 minutes vs discovering the same failure at timeout.
+          sleep 60
+          CRASH_DIR="$HOME/Library/Logs/DiagnosticReports"
+          if find "$CRASH_DIR" -name "ZeldaGuide*.crash" 2>/dev/null | grep -q .; then
+            echo "FAST-FAIL: crash report found within 60s of launch."
+            find "$CRASH_DIR" -name "ZeldaGuide*.crash" -exec head -60 {} \;
+            exit 1
+          fi
+          if grep -q "Guide unavailable\|LLM unavailable\|EmbeddingError\|fatal error\|SIGABRT" \
+              "$RUNNER_TEMP/app_stdout.log" 2>/dev/null; then
+            echo "FAST-FAIL: startup error detected in app stdout:"
+            cat "$RUNNER_TEMP/app_stdout.log"
+            exit 1
+          fi
+          echo "60s check passed — no crash or startup error. Proceeding to 45-min model load wait."
+          echo "App stdout so far:"
+          cat "$RUNNER_TEMP/app_stdout.log" 2>/dev/null || echo "(empty)"
+
       - name: Wait for RAG pipeline to complete (up to 45 min)
         run: |
           # Poll until we see a [CI-AUTOQUERY] result, a crash report, or timeout.
