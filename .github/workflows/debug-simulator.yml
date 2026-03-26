@@ -39,8 +39,8 @@ jobs:
     permissions:
       contents: read
       actions: read
-    # Model compilation can take 30–60 min on the first run.
-    timeout-minutes: 90
+    # Model compilation: 30–60 min. App load + RAG: up to 20 min.
+    timeout-minutes: 100
     steps:
       - uses: actions/checkout@v4
 
@@ -170,18 +170,21 @@ jobs:
             --autoquery 2>&1
           echo "App launched with --autoquery"
 
-      - name: Wait for RAG pipeline to complete (up to 15 min)
+      - name: Wait for RAG pipeline to complete (up to 20 min)
         run: |
-          # Poll until we see a [CI-AUTOQUERY] result, a crash, or the timeout.
-          # Model load alone can take 5–10 min on the simulator; RAG adds ~1 min.
+          # Poll until we see a [CI-AUTOQUERY] result, a crash report, or timeout.
+          # Model load: 5–15 min on simulator. RAG query: ~1 min on top.
+          # We do NOT use 'ps ax' via simctl spawn — process names appear differently
+          # inside the container and produce false "process gone" reports.
+          # Instead we check for a crash report file as the reliable crash signal.
+          CRASH_DIR="$HOME/Library/Logs/DiagnosticReports"
           echo "Waiting for [CI-AUTOQUERY] PASS or FAIL..."
-          for i in $(seq 1 90); do
+          for i in $(seq 1 120); do
             sleep 10
             echo "--- elapsed: ${i}0s ---"
-            # Stop if the app process has died (crash).
-            if ! xcrun simctl spawn "${{ env.SIMULATOR_UDID }}" \
-                ps ax 2>/dev/null | grep -q ZeldaGuide; then
-              echo "ZeldaGuide process is gone — likely crashed."
+            # Stop if a crash report appeared.
+            if find "$CRASH_DIR" -name "ZeldaGuide*.crash" 2>/dev/null | grep -q .; then
+              echo "ZeldaGuide crash report found."
               break
             fi
             # Stop as soon as we have a CI-AUTOQUERY result.
@@ -189,7 +192,7 @@ jobs:
               echo "Found [CI-AUTOQUERY] marker — stopping early."
               break
             fi
-            # Also surface any LLM/embedding errors we might be waiting on.
+            # Also surface any LLM/embedding errors.
             if grep -q "EmbeddingError\|LLMError\|Guide unavailable\|LLM unavailable" \
                 "$RUNNER_TEMP/simulator.log" 2>/dev/null; then
               echo "Found error marker — stopping early."
