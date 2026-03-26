@@ -42,8 +42,8 @@ final class BPETokenizerTests: XCTestCase {
 
     private var tok: BPETokenizer!
 
-    override func setUp() throws {
-        try super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         tok = try BPETokenizer(data: kMinimalJSON)
     }
 
