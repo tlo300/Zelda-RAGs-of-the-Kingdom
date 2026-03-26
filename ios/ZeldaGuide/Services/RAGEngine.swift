@@ -53,7 +53,7 @@ actor CoreMLEmbeddingService: EmbeddingService {
         }
         do {
             let config = MLModelConfiguration()
-            config.computeUnits = .cpuAndNeuralEngine
+            config.computeUnits = .cpuOnly
             let compiledURL = try await compileAndCache(modelURL)
             model = try await MLModel.load(contentsOf: compiledURL, configuration: config)
         } catch {

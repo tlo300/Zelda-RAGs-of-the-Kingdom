@@ -115,7 +115,10 @@ actor LLMService {
 
         do {
             let config = MLModelConfiguration()
-            config.computeUnits = .cpuAndNeuralEngine
+            // cpuOnly avoids the NE runtime which can raise uncatchable NSExceptions
+            // on some device/iOS 18 combinations with grouped palettization models.
+            // TODO: re-evaluate after model is re-converted with max_context = 2048 (#83).
+            config.computeUnits = .cpuOnly
             let compiledURL = try await compileAndCache(modelURL)
             let model = try await MLModel.load(contentsOf: compiledURL, configuration: config)
             predictor = CoreMLPredictor(model: model)
