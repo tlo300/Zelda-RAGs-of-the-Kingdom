@@ -3,6 +3,9 @@
 // Owns the RAGEngine, manages the message list, and handles streaming cancellation.
 
 import Foundation
+import os
+
+private let ciLog = Logger(subsystem: "com.tlo300.ZeldaGuide", category: "CI")
 
 @MainActor
 final class ChatViewModel: ObservableObject {
@@ -31,7 +34,7 @@ final class ChatViewModel: ObservableObject {
                     }
                 } catch {
                     if ProcessInfo.processInfo.arguments.contains("--autoquery") {
-                        print("[CI-AUTOQUERY] FAIL: engine.prepare() threw — \(error.localizedDescription)")
+                        ciLog.notice("[CI-AUTOQUERY] FAIL: engine.prepare() threw — \(error.localizedDescription, privacy: .public)")
                     }
                     messages.append(ChatMessage(
                         role: .assistant,
@@ -116,18 +119,18 @@ final class ChatViewModel: ObservableObject {
     /// Invoked automatically when the app is launched with `--autoquery`.
     private func runCIAutoQuery(engine: RAGEngine) async {
         let question = "What is a Korok Seed?"
-        print("[CI-AUTOQUERY] Engine ready — submitting test query: \(question)")
+        ciLog.notice("[CI-AUTOQUERY] Engine ready — submitting test query: \(question, privacy: .public)")
         let stream = await engine.answer(question: question)
         var answer = ""
         for await token in stream {
             answer += token
         }
         if answer.isEmpty {
-            print("[CI-AUTOQUERY] FAIL: got empty answer")
+            ciLog.notice("[CI-AUTOQUERY] FAIL: got empty answer")
         } else if answer.hasPrefix("[Error:") {
-            print("[CI-AUTOQUERY] FAIL: \(answer)")
+            ciLog.notice("[CI-AUTOQUERY] FAIL: \(answer, privacy: .public)")
         } else {
-            print("[CI-AUTOQUERY] PASS: \(answer.prefix(200))")
+            ciLog.notice("[CI-AUTOQUERY] PASS: \(answer.prefix(200), privacy: .public)")
         }
     }
 }
