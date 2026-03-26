@@ -3,6 +3,7 @@
 // All dependencies (embedder, vector search, LLM) are injected via mocks so tests
 // run without real Core ML models or a bundled knowledge_base.db.
 
+import CoreML
 import XCTest
 import SQLiteVec
 @testable import ZeldaGuide
@@ -202,6 +203,47 @@ final class RAGEngineTests: XCTestCase {
                        "sourceChunks must be populated after answer() completes")
         XCTAssertEqual(chunks[0].pageTitle, "Chunk One",
                        "Top chunk must be the one closest to the query embedding (dim 0)")
+    }
+
+    // MARK: - CoreMLEmbeddingService.buildInputArrays shape contract
+
+    func testBuildInputArraysShapeIsAlways1x128() throws {
+        let cases = ["", "Hi", "What's the best first shrine to visit?",
+                     String(repeating: "a", count: 200)]
+        for text in cases {
+            let (ids, mask) = try CoreMLEmbeddingService.buildInputArrays(for: text)
+            XCTAssertEqual(ids.shape,  [1, 128], "inputIDs shape must be [1,128] for: \(text.prefix(20))")
+            XCTAssertEqual(mask.shape, [1, 128], "attentionMask shape must be [1,128] for: \(text.prefix(20))")
+        }
+    }
+
+    func testBuildInputArraysPaddingPositionsAreZero() throws {
+        // "Hi" = 2 UTF-8 bytes → positions 2…127 must be zero-padded
+        let (ids, mask) = try CoreMLEmbeddingService.buildInputArrays(for: "Hi")
+        for i in 2..<128 {
+            XCTAssertEqual(ids[i].int32Value,  0, "inputIDs[\(i)] should be 0 (padding)")
+            XCTAssertEqual(mask[i].int32Value, 0, "attentionMask[\(i)] should be 0 (padding)")
+        }
+        XCTAssertEqual(mask[0].int32Value, 1, "attentionMask[0] should be 1 (real token)")
+        XCTAssertEqual(mask[1].int32Value, 1, "attentionMask[1] should be 1 (real token)")
+    }
+
+    func testBuildInputArraysLongTextTruncatedTo128() throws {
+        let longText = String(repeating: "a", count: 200)
+        let (ids, mask) = try CoreMLEmbeddingService.buildInputArrays(for: longText)
+        XCTAssertEqual(ids.shape, [1, 128])
+        // All 128 positions are real tokens — mask should be all 1s
+        for i in 0..<128 {
+            XCTAssertEqual(mask[i].int32Value, 1, "attentionMask[\(i)] should be 1 (no padding)")
+        }
+    }
+
+    func testBuildInputArraysEmptyTextIsAllZeroPadded() throws {
+        let (ids, mask) = try CoreMLEmbeddingService.buildInputArrays(for: "")
+        for i in 0..<128 {
+            XCTAssertEqual(ids[i].int32Value,  0, "inputIDs[\(i)] should be 0 for empty input")
+            XCTAssertEqual(mask[i].int32Value, 0, "attentionMask[\(i)] should be 0 for empty input")
+        }
     }
 
     // MARK: - Fixture helpers

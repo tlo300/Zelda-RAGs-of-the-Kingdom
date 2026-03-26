@@ -1,41 +1,67 @@
 # .github/workflows/test-ios.yml
-# Runs the ZeldaGuide XCTest suite on every PR and push to main.
-# Uses a simulator destination so no signing or device is required.
-
-name: iOS Tests
+# Runs the XCTest suite on an iOS simulator on every push to main and on every PR.
+# No real Core ML models required — all services use injected mocks.
+# Catches: compilation errors, Swift logic bugs, MLMultiArray shape contract violations.
+name: iOS unit tests
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'ios/**'
-      - '.github/workflows/test-ios.yml'
   pull_request:
-    paths:
-      - 'ios/**'
-      - '.github/workflows/test-ios.yml'
 
 jobs:
   test:
-    name: XCTest (iPhone 15, iOS 17)
-    runs-on: macos-14
-
+    name: XCTest on iOS Simulator
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run tests
+      - name: Create and boot iOS simulator
+        run: |
+          python3 << 'PYEOF'
+          import subprocess, json, os, sys
+
+          runtimes = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "runtimes", "-j"]))["runtimes"]
+          ios = [r for r in runtimes if r.get("isAvailable") and "iOS" in r.get("name", "")]
+          if not ios:
+              print("No available iOS runtime"); sys.exit(1)
+          runtime = ios[0]["identifier"]
+          print("Runtime:", runtime)
+
+          devtypes = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devicetypes", "-j"]))["devicetypes"]
+          iphones = [d for d in devtypes if "iPhone" in d.get("name", "")]
+          preferred = ["iPhone 16 Pro", "iPhone 16", "iPhone 15 Pro", "iPhone 15"]
+          devtype = next((d["identifier"] for name in preferred for d in iphones if d["name"] == name), iphones[-1]["identifier"] if iphones else None)
+          if not devtype:
+              print("No iPhone device type found"); sys.exit(1)
+          print("Device type:", devtype)
+
+          udid = subprocess.check_output(["xcrun", "simctl", "create", "CIDevice", devtype, runtime]).decode().strip()
+          print("UDID:", udid)
+          subprocess.check_call(["xcrun", "simctl", "boot", udid])
+
+          with open(os.environ["GITHUB_ENV"], "a") as f:
+              f.write(f"SIMULATOR_UDID={udid}\n")
+          PYEOF
+
+      - name: Resolve Swift package dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project ios/ZeldaGuide.xcodeproj \
+            -scheme ZeldaGuide
+
+      - name: Run unit tests on simulator
         run: |
           xcodebuild test \
             -project ios/ZeldaGuide.xcodeproj \
             -scheme ZeldaGuide \
-            -destination "platform=iOS Simulator,name=iPhone 15,OS=latest" \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            | xcpretty --color || true
+            -destination "id=${{ env.SIMULATOR_UDID }}" \
+            -only-testing:ZeldaGuideTests
 
       - name: Write job summary
         if: always()
         run: |
-          echo "## iOS Test Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- Runner: macos-14" >> $GITHUB_STEP_SUMMARY
-          echo "- Destination: iPhone 15 Simulator (iOS latest)" >> $GITHUB_STEP_SUMMARY
+          echo "## iOS Unit Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Runner: macos-15" >> $GITHUB_STEP_SUMMARY
+          echo "- Simulator UDID: ${{ env.SIMULATOR_UDID }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests: ZeldaGuideTests" >> $GITHUB_STEP_SUMMARY
