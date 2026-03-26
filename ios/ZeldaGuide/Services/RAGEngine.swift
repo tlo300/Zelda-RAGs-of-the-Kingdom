@@ -53,7 +53,7 @@ actor CoreMLEmbeddingService: EmbeddingService {
         }
         do {
             let config = MLModelConfiguration()
-            config.computeUnits = .cpuAndNeuralEngine
+            config.computeUnits = .cpuOnly
             let compiledURL = try await compileAndCache(modelURL)
             model = try await MLModel.load(contentsOf: compiledURL, configuration: config)
         } catch {
@@ -255,8 +255,12 @@ actor RAGEngine {
         if chunks.isEmpty {
             contextBlock = "(No relevant information found in the knowledge base.)"
         } else {
+            // Limit each chunk to 500 characters (~130 BPE tokens) so the full assembled
+            // prompt stays within the 512-token model limit. Remove this cap after
+            // re-running convert-model with max_context = 2048 (issue #83).
             contextBlock = chunks.enumerated().map { index, chunk in
-                "[\(index + 1)] (source: \(chunk.source) | \(chunk.pageTitle))\n\(chunk.chunkText)"
+                let text = String(chunk.chunkText.prefix(500))
+                return "[\(index + 1)] (source: \(chunk.source) | \(chunk.pageTitle))\n\(text)"
             }.joined(separator: "\n\n")
         }
         return "Context:\n\(contextBlock)\n\nQuestion: \(question)"

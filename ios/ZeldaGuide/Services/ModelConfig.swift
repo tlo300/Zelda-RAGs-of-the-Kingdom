@@ -24,15 +24,24 @@ struct ModelConfig {
         }
     }
 
-    static var maxContextTokens: Int {
-        switch activeVariant {
-        case .qwen1B: return 4096
-        case .qwen3B: return 8192
-        }
-    }
+    /// Total token limit the Core ML model was compiled for.
+    /// Must match max_context in model/convert_llm.py — change both together via convert-model CI.
+    static var modelMaxSequenceLength: Int { 512 }
 
-    static var maxOutputTokens: Int { 512 }
-    static var ragTopK: Int { 5 }
+    /// Maximum tokens for the initial prompt (system + RAG context + user question).
+    /// Sized to leave headroom for the generated answer within modelMaxSequenceLength.
+    /// Raise this (alongside modelMaxSequenceLength) after re-running convert-model with
+    /// max_context = 2048.
+    static var maxContextTokens: Int { 380 }
+
+    /// Generation-loop iteration cap. The context guard may stop generation earlier
+    /// if inputTokens.count reaches modelMaxSequenceLength first.
+    static var maxOutputTokens: Int { 200 }
+
+    /// Number of RAG chunks to retrieve. Kept at 2 so two 500-char chunks + system
+    /// prompt + question fits within the 512-token model limit. Raise to 5 after
+    /// re-running convert-model with max_context = 2048.
+    static var ragTopK: Int { 2 }
     static var embeddingDimensions: Int { 384 }
     static var embeddingModelFilename: String { "MiniLMEmbedder.mlmodelc" }
     static var knowledgeBaseFilename: String { "knowledge_base.db" }
