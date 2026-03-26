@@ -74,22 +74,6 @@ struct CoreMLPredictor: LLMPredictor {
     }
 }
 
-/// Byte-level placeholder tokenizer used until tokenizer.json is bundled from CI.
-/// PLACEHOLDER — encode maps UTF-8 bytes to IDs 0–255; decode is the inverse.
-/// Replace with a Qwen2.5-compatible BPE tokenizer once tokenizer.json is added to Resources.
-struct BundledTokenizer: LLMTokenizer {
-    var eosTokenID: Int32 { 151645 }  // Qwen2.5 Instruct <|im_end|> ends the assistant turn
-
-    func encode(_ text: String) -> [Int32] {
-        Array(text.utf8.prefix(ModelConfig.maxContextTokens)).map { Int32($0) }
-    }
-
-    func decode(tokenID: Int32) -> String {
-        guard tokenID >= 0, tokenID < 256 else { return "" }
-        return String(Unicode.Scalar(UInt8(tokenID)))
-    }
-}
-
 // MARK: - LLMService
 
 /// Loads the Core ML Qwen2.5 model and streams generated tokens via `AsyncStream<String>`.
@@ -137,7 +121,14 @@ actor LLMService {
             throw LLMError.loadFailed(error)
         }
 
-        tokenizer = BundledTokenizer()
+        guard let tokURL = Bundle.main.url(forResource: "tokenizer", withExtension: "json") else {
+            throw LLMError.modelNotFound("tokenizer.json")
+        }
+        do {
+            tokenizer = try BPETokenizer(url: tokURL)
+        } catch {
+            throw LLMError.loadFailed(error)
+        }
         registerMemoryWarningHandler()
     }
 

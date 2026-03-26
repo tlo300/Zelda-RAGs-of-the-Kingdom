@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #77 llm.load() never called + EOS token fix + LLM-not-ready race — prepare() added to RAGEngine, ChatViewModel calls it at startup, send button disabled until ready, EOS corrected to 151645
-In progress     : (none)
+Last completed  : #78 real Qwen2.5 BPE tokenizer — BPETokenizer.swift replaces BundledTokenizer stub; tokenizer.json injected by CI; .ipa built from run 23587309954 (llm_run_id=23563734620 + tokenizer_run_id=23587143619)
+In progress     : PR #79 open for #78 — pending review/merge
 Blocked         : (none)
-Last session    : 2026-03-26 — fixed #75 embedding key, #77 LLM load/EOS/race; #78 (real BPE tokenizer) is next blocker for real output; trigger build-ipa with llm_run_id=23563734620 to test on device
+Last session    : 2026-03-26 — #78 complete; .ipa with real BPE tokenizer ready for device test; build-ipa now takes optional tokenizer_run_id for skip_conversion builds
 
 ---
 
@@ -224,7 +224,7 @@ Last session    : 2026-03-26 — fixed #75 embedding key, #77 LLM load/EOS/race;
 | #72   | Simulator CI + embedding shape unit tests | 4 | merged |
 | #75   | Fix embedding output key mismatch | 4 | merged |
 | #77   | Fix llm.load() never called + EOS token + race condition | 4 | merged |
-| #78   | Replace BundledTokenizer with real Qwen2.5 BPE tokenizer | 4 | backlog |
+| #78   | Replace BundledTokenizer with real Qwen2.5 BPE tokenizer | 4 | PR #79 |
 | #18   | App performance tuning and model warm-up | 4 | backlog |
 | #69   | Add in-app log viewer for on-device debugging | 4 | backlog |
 
