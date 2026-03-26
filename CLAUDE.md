@@ -190,14 +190,15 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #85 fix coremlcompiler iOS target — --target-platform iphoneos produces iOS-compatible .mlmodelc; r19 IPA built (run 23594776533)
-In progress     : convert-model run 23591992777 (max_context=2048, for future IPA with ragTopK=5 and full context)
-Blocked         : (none)
-Last session    : 2026-03-26 — #85 merged; r19 IPA built; on-device testing pending
+Last completed  : #85/#88 fix coremlcompiler --platform iOS flag (--target-platform ignored; 'iphoneos' silently fell back to macOS)
+In progress     : r21 IPA build blocked — GitHub Actions macOS quota exhausted for billing period
+Blocked         : macOS runner minutes exhausted; r21 cannot build until quota resets or paid minutes added
+Last session    : 2026-03-26 — #85 root cause identified across 3 PRs; correct fix on main; quota hit before r21 could run
 
 Notes:
-- r19 IPA (ZeldaGuide-v1.0-1B-20260326-r19.ipa) uses cpuOnly + ragTopK=2 + 500-char chunk cap + modelMaxSequenceLength=512 + iOS-targeted coremlcompiler
-- r18 failed with "data couldn't be read because it isn't in the correct format" — root cause was coremlcompiler defaulting to macOS target
+- Root cause chain: r18/r19 used --target-platform (ignored), r20 used --platform iphoneos (wrong value, also ignored), r21 needs --platform iOS (correct)
+- Fix is on main — just needs a fresh build-ipa.yml run with llm_run_id=23563734620 tokenizer_run_id=23587143619 once quota resets
+- r19/r20 both still compile for macOS; do NOT sideload them — "incorrect format" error will persist
 - Once convert-model run 23591992777 (max_context=2048) completes: bump ModelConfig.swift limits, build fresh IPA, test on device
 - debug-simulator workflow (debug-simulator.yml) lets you run real model loading on simulator; trigger with llm_run_id=23563734620 tokenizer_run_id=23587143619
 
