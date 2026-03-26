@@ -78,7 +78,7 @@ struct CoreMLPredictor: LLMPredictor {
 /// PLACEHOLDER — encode maps UTF-8 bytes to IDs 0–255; decode is the inverse.
 /// Replace with a Qwen2.5-compatible BPE tokenizer once tokenizer.json is added to Resources.
 struct BundledTokenizer: LLMTokenizer {
-    var eosTokenID: Int32 { 151643 }  // Qwen2.5 <|endoftext|>
+    var eosTokenID: Int32 { 151645 }  // Qwen2.5 Instruct <|im_end|> ends the assistant turn
 
     func encode(_ text: String) -> [Int32] {
         Array(text.utf8.prefix(ModelConfig.maxContextTokens)).map { Int32($0) }
@@ -213,7 +213,8 @@ actor LLMService {
                 if v > maxLogit { maxLogit = v; nextToken = Int32(i) }
             }
 
-            if nextToken == eosID { break }
+            // Stop on <|im_end|> (151645) or <|endoftext|> (151643).
+            if nextToken == eosID || nextToken == 151643 { break }
             inputTokens.append(nextToken)
 
             let text = tokenizer.decode(tokenID: nextToken)

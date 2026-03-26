@@ -205,6 +205,23 @@ final class RAGEngineTests: XCTestCase {
                        "Top chunk must be the one closest to the query embedding (dim 0)")
     }
 
+    // MARK: - LLM load() contract
+
+    func testGenerateWithoutLoadProducesErrorToken() async {
+        // LLMService() with no injected predictor/tokenizer simulates the production path
+        // where load() has not been called. generate() must surface an error token rather
+        // than crashing or hanging.
+        let llm = LLMService()
+        var tokens: [String] = []
+        for await token in llm.generate(prompt: "test") {
+            tokens.append(token)
+        }
+        XCTAssertTrue(
+            tokens.contains(where: { $0.contains("not loaded") }),
+            "generate() before load() must yield an error token containing 'not loaded'; got: \(tokens)"
+        )
+    }
+
     // MARK: - CoreMLEmbeddingService.buildInputArrays shape contract
 
     func testBuildInputArraysShapeIsAlways1x128() throws {

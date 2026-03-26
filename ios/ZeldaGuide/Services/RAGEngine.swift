@@ -178,6 +178,12 @@ actor RAGEngine {
 
     // MARK: - Public API
 
+    /// Loads the LLM into memory. Must be called once before the first answer() call.
+    /// Safe to call multiple times — the underlying service no-ops if already loaded.
+    func prepare() async throws {
+        try await llm.load()
+    }
+
     /// Answers a question via the full RAG pipeline, streaming LLM output token by token.
     /// Errors are surfaced as a single "[Error: …]" token rather than thrown exceptions,
     /// so the caller can always treat the return value as a uniform token stream.
