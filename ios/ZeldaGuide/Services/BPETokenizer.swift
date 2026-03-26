@@ -194,7 +194,21 @@ struct BPETokenizer: LLMTokenizer {
 private struct TokenizerJSON: Decodable {
     struct Model: Decodable {
         let vocab: [String: Int]
+        // HuggingFace tokenizers can store merges as either ["a b", ...] or [["a","b"], ...].
+        // Decode as [[String]] and join with a space to normalise both formats.
         let merges: [String]
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            vocab = try c.decode([String: Int].self, forKey: .vocab)
+            if let pairs = try? c.decode([[String]].self, forKey: .merges) {
+                merges = pairs.map { $0.joined(separator: " ") }
+            } else {
+                merges = try c.decode([String].self, forKey: .merges)
+            }
+        }
+
+        enum CodingKeys: String, CodingKey { case vocab, merges }
     }
     struct AddedToken: Decodable {
         let id: Int
