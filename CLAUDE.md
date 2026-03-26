@@ -191,16 +191,17 @@ Create docs/decisions/NNN-short-title.md with:
 ## Current state
 Active milestone : 4 - Polish and distribution
 Last completed  : #89 enhance debug-simulator for full RAG pipeline + bump 2048-context limits (merged as #90)
-In progress     : debug-simulator run 23598467857 — exercising full RAG pipeline with 2048-context model (run 23591992777)
+In progress     : debug-simulator run 23599266010 — exercising full RAG pipeline with 2048-context model
 Blocked         : nothing — $10 Actions budget cap set; CI is running again
-Last session    : 2026-03-26 — billing blocked by $0 Actions budget; fixed; #89/#90 merged; debug-simulator triggered
+Last session    : 2026-03-26 — billing unblocked; #89/#90 merged; ps-check bug fixed; debug-simulator re-triggered
 
 Notes:
 - ModelConfig.swift now uses 2048 limits (run 23591992777): maxSequenceLength=2048, maxContextTokens=1500, maxOutputTokens=512, ragTopK=5
-- debug-simulator run 23598467857 will produce [CI-AUTOQUERY] PASS/FAIL in the simulator log
-- If debug-simulator PASSes: trigger build-ipa.yml with llm_run_id=23591992777 tokenizer_run_id=23587143619 for a fresh IPA
+- debug-simulator run 23599266010 uses llm_run_id=23591992777 tokenizer_run_id=23587143619; will print [CI-AUTOQUERY] PASS/FAIL
+- Previous run 23598467857 failed because ps-based crash check falsely reported app gone after 10s (now fixed — uses crash report files instead)
+- If debug-simulator PASSes: trigger build-ipa.yml with llm_run_id=23591992777 tokenizer_run_id=23587143619
 - If debug-simulator FAILs: read the [CI-AUTOQUERY] line in the simulator log to diagnose
-- Do NOT sideload r19/r20 .ipa — those compiled for macOS, will give "incorrect format" on device
+- Do NOT sideload old .ipa builds — r19/r20 compiled for macOS, will give "incorrect format" on device
 
 ---
 
