@@ -115,10 +115,12 @@ actor LLMService {
 
         do {
             let config = MLModelConfiguration()
-            // cpuOnly avoids the NE runtime which can raise uncatchable NSExceptions
-            // on some device/iOS 18 combinations with grouped palettization models.
-            // TODO: re-evaluate after model is re-converted with max_context = 2048 (#83).
-            config.computeUnits = .cpuOnly
+            // cpuAndGPU avoids the NE runtime (which can raise uncatchable NSExceptions
+            // on some device/iOS 18 combinations with grouped palettization models) while
+            // also avoiding a hang that .cpuOnly exhibits in the iOS simulator with the
+            // 2048-context model. In the simulator there is no GPU so this falls back to
+            // CPU-only execution; on device it uses CPU+GPU.
+            config.computeUnits = .cpuAndGPU
             let compiledURL = try await compileAndCache(modelURL)
             let model = try await MLModel.load(contentsOf: compiledURL, configuration: config)
             predictor = CoreMLPredictor(model: model)

@@ -166,8 +166,12 @@ jobs:
         run: |
           # --autoquery tells ChatViewModel to auto-submit a test question after the engine
           # is ready and print a [CI-AUTOQUERY] PASS/FAIL line we can grep for below.
-          xcrun simctl launch "${{ env.SIMULATOR_UDID }}" com.tlo300.ZeldaGuide \
-            --autoquery 2>&1
+          # --stdout captures Swift print() output (os_log goes to simulator.log via log stream).
+          xcrun simctl launch \
+            --stdout "$RUNNER_TEMP/app_stdout.log" \
+            --stderr "$RUNNER_TEMP/app_stdout.log" \
+            "${{ env.SIMULATOR_UDID }}" com.tlo300.ZeldaGuide \
+            --autoquery
           echo "App launched with --autoquery"
 
       - name: Wait for RAG pipeline to complete (up to 45 min)
@@ -188,14 +192,14 @@ jobs:
               echo "ZeldaGuide crash report found."
               break
             fi
-            # Stop as soon as we have a CI-AUTOQUERY result.
-            if grep -q "CI-AUTOQUERY" "$RUNNER_TEMP/simulator.log" 2>/dev/null; then
+            # Stop as soon as we have a CI-AUTOQUERY result (app stdout).
+            if grep -q "CI-AUTOQUERY" "$RUNNER_TEMP/app_stdout.log" 2>/dev/null; then
               echo "Found [CI-AUTOQUERY] marker — stopping early."
               break
             fi
-            # Also surface any LLM/embedding errors.
+            # Also surface any LLM/embedding errors from app stdout.
             if grep -q "EmbeddingError\|LLMError\|Guide unavailable\|LLM unavailable" \
-                "$RUNNER_TEMP/simulator.log" 2>/dev/null; then
+                "$RUNNER_TEMP/app_stdout.log" 2>/dev/null; then
               echo "Found error marker — stopping early."
               break
             fi
@@ -208,8 +212,10 @@ jobs:
       - name: Print simulator console log
         if: always()
         run: |
-          echo "=== Simulator log (ZeldaGuide process) ==="
-          cat "$RUNNER_TEMP/simulator.log" || echo "(log file not found)"
+          echo "=== App stdout/stderr (print() output) ==="
+          cat "$RUNNER_TEMP/app_stdout.log" || echo "(app stdout log not found)"
+          echo "=== Simulator system log (os_log output) ==="
+          cat "$RUNNER_TEMP/simulator.log" || echo "(simulator log not found)"
 
       - name: Check for crash reports
         if: always()
@@ -228,7 +234,7 @@ jobs:
 
       - name: Assert RAG pipeline passed
         run: |
-          LOG="$RUNNER_TEMP/simulator.log"
+          LOG="$RUNNER_TEMP/app_stdout.log"
           if grep -q "\[CI-AUTOQUERY\] PASS" "$LOG" 2>/dev/null; then
             echo "RAG pipeline: PASS"
             grep "\[CI-AUTOQUERY\]" "$LOG"
@@ -244,7 +250,7 @@ jobs:
       - name: Write job summary
         if: always()
         run: |
-          LOG="$RUNNER_TEMP/simulator.log"
+          LOG="$RUNNER_TEMP/app_stdout.log"
           if grep -q "\[CI-AUTOQUERY\] PASS" "$LOG" 2>/dev/null; then
             RESULT="PASS ✓"
           elif grep -q "\[CI-AUTOQUERY\] FAIL" "$LOG" 2>/dev/null; then
