@@ -210,9 +210,9 @@ jobs:
               echo "ZeldaGuide crash report found."
               break
             fi
-            # Stop as soon as we have a CI-AUTOQUERY result (via Logger / log stream).
-            if grep -q "CI-AUTOQUERY" "$RUNNER_TEMP/simulator.log" 2>/dev/null; then
-              echo "Found [CI-AUTOQUERY] marker — stopping early."
+            # Stop as soon as we have a PASS or FAIL result (not just "Engine ready").
+            if grep -qE "\[CI-AUTOQUERY\] (PASS|FAIL)" "$RUNNER_TEMP/simulator.log" 2>/dev/null; then
+              echo "Found [CI-AUTOQUERY] PASS or FAIL — stopping early."
               break
             fi
             # Also surface any LLM/embedding errors.
