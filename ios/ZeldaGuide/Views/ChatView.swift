@@ -76,14 +76,15 @@ struct ChatView: View {
 
     private var inputBar: some View {
         HStack(alignment: .bottom, spacing: 10) {
-            TextField("Ask a question…", text: $viewModel.inputText, axis: .vertical)
+            TextField(viewModel.isReady ? "Ask a question…" : "Loading model…",
+                      text: $viewModel.inputText, axis: .vertical)
                 .lineLimit(1...4)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(Color(.secondarySystemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .focused($inputFocused)
-                .disabled(viewModel.isGenerating)
+                .disabled(viewModel.isGenerating || !viewModel.isReady)
                 .onSubmit { viewModel.send() }
 
             if viewModel.isGenerating {
@@ -102,9 +103,9 @@ struct ChatView: View {
         return Button(action: viewModel.send) {
             Image(systemName: "arrow.up.circle.fill")
                 .font(.system(size: 34))
-                .foregroundStyle(empty ? Color.secondary : Color.accentColor)
+                .foregroundStyle(empty || !viewModel.isReady ? Color.secondary : Color.accentColor)
         }
-        .disabled(empty)
+        .disabled(empty || !viewModel.isReady)
     }
 
     private var stopButton: some View {

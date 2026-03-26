@@ -11,6 +11,7 @@ final class ChatViewModel: ObservableObject {
     @Published var inputText: String = ""
     @Published private(set) var isGenerating: Bool = false
     @Published private(set) var isLoading: Bool = false
+    @Published private(set) var isReady: Bool = false
 
     private var ragEngine: RAGEngine?
     private var streamTask: Task<Void, Never>?
@@ -24,13 +25,12 @@ final class ChatViewModel: ObservableObject {
             Task {
                 do {
                     try await engine.prepare()
+                    isReady = true
                 } catch {
-                    await MainActor.run {
-                        self.messages.append(ChatMessage(
-                            role: .assistant,
-                            text: "[LLM unavailable: \(error.localizedDescription)]"
-                        ))
-                    }
+                    messages.append(ChatMessage(
+                        role: .assistant,
+                        text: "[LLM unavailable: \(error.localizedDescription)]"
+                    ))
                 }
             }
         } catch {
@@ -41,9 +41,10 @@ final class ChatViewModel: ObservableObject {
         }
     }
 
-    /// Test / preview init — injects a pre-built RAGEngine.
+    /// Test / preview init — injects a pre-built RAGEngine (already loaded).
     init(ragEngine: RAGEngine) {
         self.ragEngine = ragEngine
+        self.isReady = true
     }
 
     // MARK: - Actions
