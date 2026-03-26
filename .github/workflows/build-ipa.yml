@@ -119,7 +119,7 @@ jobs:
           VERSION=$(grep MARKETING_VERSION ios/ZeldaGuide.xcodeproj/project.pbxproj \
             | head -1 | sed 's/.*= //;s/;//')
           DATE=$(date -u +%Y%m%d)
-          FILENAME="ZeldaGuide-v${VERSION}-${{ inputs.model_variant }}-${DATE}.ipa"
+          FILENAME="ZeldaGuide-v${VERSION}-${{ inputs.model_variant }}-${DATE}-r${{ github.run_number }}.ipa"
           echo "filename=$FILENAME" >> $GITHUB_OUTPUT
           cp "$RUNNER_TEMP/ZeldaGuide.ipa" "$RUNNER_TEMP/$FILENAME"
 
