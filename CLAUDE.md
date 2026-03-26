@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #66 fix bundle real Core ML models — MiniLMEmbedder placeholder replaced at build time via convert_embeddings.py; QwenModel-1B.mlpackage placeholder + xcodeproj entry added; build-ipa.yml now takes llm_run_id and downloads real LLM artifact before archiving
+Last completed  : #72 simulator CI + embedding shape tests — test-ios.yml runs XCTest on iPhone simulator on every PR; CoreMLEmbeddingService.buildInputArrays extracted as testable static; 4 shape contract tests added; would have caught #70 before sideload
 In progress     : (none)
-Blocked         : needs HF_TOKEN secret + successful convert-model.yml run before build-ipa.yml can produce a working .ipa
-Last session    : 2026-03-26 — device test revealed embedding model error (Item does not exist for identifier: 0); root cause: build-ipa.yml never injected real models, only placeholders; fixed in #66/#67
+Blocked         : build-ipa.yml with llm_run_id=23563734620 is running (shape fix #71 not yet in tested .ipa)
+Last session    : 2026-03-26 — fixed 3 device errors: #66 placeholder models, #70 embedding shape mismatch (1x40 vs 1x128), #72 simulator CI + shape tests; build-ipa.yml now needs llm_run_id from convert-model run; use run ID 23563734620 for next build
 
 ---
 
@@ -220,7 +220,10 @@ Last session    : 2026-03-26 — device test revealed embedding model error (Ite
 | #16   | Source attribution view | 3 | merged |
 | #17   | AltStore sideload build and distribution docs | 4 | merged |
 | #66   | Fix bundle real Core ML models in .ipa | 4 | merged |
+| #70   | Fix embedding input shape (1x40 vs 1x128) | 4 | merged |
+| #72   | Simulator CI + embedding shape unit tests | 4 | merged |
 | #18   | App performance tuning and model warm-up | 4 | backlog |
+| #69   | Add in-app log viewer for on-device debugging | 4 | backlog |
 
 ---
 
