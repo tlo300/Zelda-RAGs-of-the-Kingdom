@@ -261,11 +261,12 @@ final class RAGEngineTests: XCTestCase {
 
     func testBuildInputArraysLongTextTruncatedTo128() throws {
         let tokenizer = try makeTokenizer()
-        let longText = String(repeating: "a", count: 200)
+        // 200 separate single-letter words: each "a" is a whole-word token (ID 1037 in BERT).
+        // 200 tokens >> 126 (maxLength-2), so truncation is guaranteed to fill all 128 slots.
+        let longText = Array(repeating: "a", count: 200).joined(separator: " ")
         let (ids, mask) = try CoreMLEmbeddingService.buildInputArrays(for: longText, using: tokenizer)
         XCTAssertEqual(ids.shape, [1, 128])
-        // First token is CLS, last real token is SEP — all 128 positions should be non-padding
-        XCTAssertEqual(ids[0].int32Value, 101,  "First token must be [CLS]=101")
+        XCTAssertEqual(ids[0].int32Value,   101, "First token must be [CLS]=101")
         XCTAssertEqual(ids[127].int32Value, 102, "Last token must be [SEP]=102 (truncation boundary)")
         XCTAssertEqual(mask[127].int32Value, 1,  "Mask at truncation boundary must be 1 (SEP is real)")
     }

@@ -145,8 +145,9 @@ final class WordPieceTokenizerTests: XCTestCase {
     // MARK: - Truncation
 
     func testLongInputTruncatedTo126Subwords() {
-        // 200 repetitions of "hello " → only 126 tokens (128 - 2 for CLS/SEP) should be kept.
-        let longText = String(repeating: "hello ", count: 200)
+        // 200 repetitions of "hello" (space-separated) — "hello" is a whole-word token in the
+        // minimal vocab (ID 4), so 200 repetitions produce exactly 200 tokens >> 126.
+        let longText = Array(repeating: "hello", count: 200).joined(separator: " ")
         let (ids, mask) = tok.encode(longText)
         XCTAssertEqual(ids.count, 128, "Output must always be 128 tokens")
         // Position 127 is the last position — must be padding (SEP is at position 127 or earlier)
