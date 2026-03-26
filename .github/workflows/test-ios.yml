@@ -45,6 +45,15 @@ jobs:
               f.write(f"SIMULATOR_UDID={udid}\n")
           PYEOF
 
+      - name: Create placeholder Core ML stubs (real models not needed for unit tests)
+        run: |
+          mkdir -p ios/ZeldaGuide/Resources/QwenModel-1B.mlmodelc
+          mkdir -p ios/ZeldaGuide/Resources/QwenModel-3B.mlmodelc
+          mkdir -p ios/ZeldaGuide/Resources/MiniLMEmbedder.mlmodelc
+          touch ios/ZeldaGuide/Resources/QwenModel-1B.mlmodelc/.stub
+          touch ios/ZeldaGuide/Resources/QwenModel-3B.mlmodelc/.stub
+          touch ios/ZeldaGuide/Resources/MiniLMEmbedder.mlmodelc/.stub
+
       - name: Resolve Swift package dependencies
         run: |
           xcodebuild -resolvePackageDependencies \
