@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #80 fix pre-compile Core ML models in CI + fix BPETokenizerTests setUp() throws compile error; merged via PR #80
-In progress     : (none)
+Last completed  : #81 fix iOS unit test CI (setUp() throws, actor await, mlmodelc stubs); CI green on main
+In progress     : build-ipa run 23589258247 in progress (llm_run_id=23563734620 + tokenizer_run_id=23587143619)
 Blocked         : (none)
-Last session    : 2026-03-26 — #80 merged; CI green on main; iOS unit tests passing
+Last session    : 2026-03-26 — #81 merged; CI green; new .ipa build triggered
 
 ---
 
