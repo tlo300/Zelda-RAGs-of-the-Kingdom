@@ -41,6 +41,7 @@ protocol EmbeddingService: Sendable {
 actor CoreMLEmbeddingService: EmbeddingService {
 
     private var model: MLModel?
+    private var tokenizer: WordPieceTokenizer?
 
     private func ensureLoaded() async throws {
         guard model == nil else { return }
@@ -56,6 +57,7 @@ actor CoreMLEmbeddingService: EmbeddingService {
             config.computeUnits = .cpuOnly
             let compiledURL = try await compileAndCache(modelURL)
             model = try await MLModel.load(contentsOf: compiledURL, configuration: config)
+            tokenizer = try WordPieceTokenizer()
         } catch {
             throw EmbeddingError.loadFailed(error)
         }
@@ -80,16 +82,16 @@ actor CoreMLEmbeddingService: EmbeddingService {
 
     /// Builds the `[1, 128]` MLMultiArray pair expected by the MiniLM Core ML model.
     /// The model was traced with max_length=128 — inputs must always have exactly that shape.
-    /// Short texts are zero-padded; long texts are truncated. Attention mask is 0 for padding.
-    static func buildInputArrays(for text: String) throws -> (inputIDs: MLMultiArray, attentionMask: MLMultiArray) {
-        let fixedLen  = 128
-        let rawTokens = Array(text.utf8.prefix(fixedLen)).map { Int32($0) }
-        let realLen   = rawTokens.count
+    /// Uses BERT WordPiece tokenization: [CLS] + subwords + [SEP] + zero-padding.
+    /// Attention mask is 1 for real tokens and 0 for padding positions.
+    static func buildInputArrays(for text: String, using tokenizer: WordPieceTokenizer) throws -> (inputIDs: MLMultiArray, attentionMask: MLMultiArray) {
+        let fixedLen = 128
+        let (ids, mask) = tokenizer.encode(text, maxLength: fixedLen)
         let inputIDs      = try MLMultiArray(shape: [1, NSNumber(value: fixedLen)], dataType: .int32)
         let attentionMask = try MLMultiArray(shape: [1, NSNumber(value: fixedLen)], dataType: .int32)
         for i in 0..<fixedLen {
-            inputIDs[i]      = i < realLen ? NSNumber(value: rawTokens[i]) : 0
-            attentionMask[i] = i < realLen ? 1 : 0
+            inputIDs[i]      = NSNumber(value: ids[i])
+            attentionMask[i] = NSNumber(value: mask[i])
         }
         return (inputIDs, attentionMask)
     }
@@ -104,7 +106,12 @@ actor CoreMLEmbeddingService: EmbeddingService {
                 userInfo: [NSLocalizedDescriptionKey: "Model unavailable after load"]))
         }
 
-        let (inputIDs, attentionMask) = try CoreMLEmbeddingService.buildInputArrays(for: text)
+        guard let tokenizer else {
+            throw EmbeddingError.loadFailed(NSError(
+                domain: "CoreMLEmbeddingService", code: -2,
+                userInfo: [NSLocalizedDescriptionKey: "WordPiece tokenizer unavailable after load"]))
+        }
+        let (inputIDs, attentionMask) = try CoreMLEmbeddingService.buildInputArrays(for: text, using: tokenizer)
 
         let features = try MLDictionaryFeatureProvider(dictionary: [
             "input_ids":      MLFeatureValue(multiArray: inputIDs),
