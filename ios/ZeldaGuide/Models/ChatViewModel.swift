@@ -19,7 +19,20 @@ final class ChatViewModel: ObservableObject {
     /// If the database is missing, a permanent error message is shown in the chat.
     init() {
         do {
-            ragEngine = try RAGEngine()
+            let engine = try RAGEngine()
+            ragEngine = engine
+            Task {
+                do {
+                    try await engine.prepare()
+                } catch {
+                    await MainActor.run {
+                        self.messages.append(ChatMessage(
+                            role: .assistant,
+                            text: "[LLM unavailable: \(error.localizedDescription)]"
+                        ))
+                    }
+                }
+            }
         } catch {
             messages.append(ChatMessage(
                 role: .assistant,
