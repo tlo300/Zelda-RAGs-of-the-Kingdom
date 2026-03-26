@@ -39,8 +39,8 @@ jobs:
     permissions:
       contents: read
       actions: read
-    # Model compilation: 30–60 min. App load + RAG: up to 20 min.
-    timeout-minutes: 100
+    # Model compilation: 30–60 min. App load (2048-context cpuOnly) + RAG: up to 45 min.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 
@@ -170,16 +170,17 @@ jobs:
             --autoquery 2>&1
           echo "App launched with --autoquery"
 
-      - name: Wait for RAG pipeline to complete (up to 20 min)
+      - name: Wait for RAG pipeline to complete (up to 45 min)
         run: |
           # Poll until we see a [CI-AUTOQUERY] result, a crash report, or timeout.
-          # Model load: 5–15 min on simulator. RAG query: ~1 min on top.
+          # Model load: up to 35 min for 2048-context cpuOnly model on simulator.
+          # RAG query: ~1–2 min on top. 270 * 10s = 45 min total.
           # We do NOT use 'ps ax' via simctl spawn — process names appear differently
           # inside the container and produce false "process gone" reports.
           # Instead we check for a crash report file as the reliable crash signal.
           CRASH_DIR="$HOME/Library/Logs/DiagnosticReports"
           echo "Waiting for [CI-AUTOQUERY] PASS or FAIL..."
-          for i in $(seq 1 120); do
+          for i in $(seq 1 270); do
             sleep 10
             echo "--- elapsed: ${i}0s ---"
             # Stop if a crash report appeared.
