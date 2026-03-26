@@ -47,7 +47,7 @@ on:
 jobs:
   build-ipa:
     name: Build unsigned .ipa (AltStore / SideStore)
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
@@ -154,7 +154,7 @@ jobs:
         if: always()
         run: |
           echo "## Build .ipa Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- Runner: macos-14" >> $GITHUB_STEP_SUMMARY
+          echo "- Runner: macos-15" >> $GITHUB_STEP_SUMMARY
           echo "- Artifact: ${{ steps.versioned_name.outputs.filename }}" >> $GITHUB_STEP_SUMMARY
           echo "- Model variant: Qwen2.5 ${{ inputs.model_variant }}" >> $GITHUB_STEP_SUMMARY
           echo "- Size: ${{ steps.ipa_size.outputs.size }}" >> $GITHUB_STEP_SUMMARY
