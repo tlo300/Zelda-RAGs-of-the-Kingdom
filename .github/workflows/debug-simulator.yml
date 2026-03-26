@@ -58,7 +58,7 @@ jobs:
       - name: Compile MiniLMEmbedder to .mlmodelc and inject into Resources
         run: |
           xcrun coremlcompiler compile model/MiniLMEmbedder.mlpackage model/ \
-            --platform iphonesimulator --deployment-target 18.0
+            --platform iOS --deployment-target 18.0
           rm -rf ios/ZeldaGuide/Resources/MiniLMEmbedder.mlmodelc
           mv model/MiniLMEmbedder.mlmodelc ios/ZeldaGuide/Resources/MiniLMEmbedder.mlmodelc
 
@@ -76,7 +76,7 @@ jobs:
           xcrun coremlcompiler compile \
             "ios/ZeldaGuide/Resources/QwenModel-${VARIANT}.mlpackage" \
             "ios/ZeldaGuide/Resources/" \
-            --platform iphonesimulator --deployment-target 18.0
+            --platform iOS --deployment-target 18.0
           rm -rf "ios/ZeldaGuide/Resources/QwenModel-${VARIANT}.mlpackage"
 
       - name: Download tokenizer.json artifact
