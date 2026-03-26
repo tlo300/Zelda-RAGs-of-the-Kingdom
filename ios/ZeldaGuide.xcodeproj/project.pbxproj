@@ -28,6 +28,9 @@
 		AH1000000000000000000001 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AH2000000000000000000001 /* ChatViewModel.swift */; };
 		AI1000000000000000000001 /* ChatViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI2000000000000000000001 /* ChatViewModelTests.swift */; };
 		AJ1000000000000000000001 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AJ2000000000000000000001 /* ChatMessage.swift */; };
+		AK1000000000000000000001 /* BPETokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AK2000000000000000000001 /* BPETokenizer.swift */; };
+		AL1000000000000000000001 /* BPETokenizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AL2000000000000000000001 /* BPETokenizerTests.swift */; };
+		AM1000000000000000000001 /* tokenizer.json in Resources */ = {isa = PBXBuildFile; fileRef = AM2000000000000000000001 /* tokenizer.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -52,6 +55,9 @@
 		AH2000000000000000000001 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		AI2000000000000000000001 /* ChatViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModelTests.swift; sourceTree = "<group>"; };
 		AJ2000000000000000000001 /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
+		AK2000000000000000000001 /* BPETokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BPETokenizer.swift; sourceTree = "<group>"; };
+		AL2000000000000000000001 /* BPETokenizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BPETokenizerTests.swift; sourceTree = "<group>"; };
+		AM2000000000000000000001 /* tokenizer.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "tokenizer.json"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -103,6 +109,7 @@
 				AC1000000000000000000002 /* LLMServiceTests.swift in Sources */,
 				AD1000000000000000000002 /* RAGEngineTests.swift in Sources */,
 				AI1000000000000000000001 /* ChatViewModelTests.swift in Sources */,
+				AL1000000000000000000001 /* BPETokenizerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -147,6 +154,7 @@
 				AA2000000000000000000003 /* ModelConfig.swift */,
 				AB2000000000000000000002 /* VectorSearchService.swift */,
 				AC2000000000000000000001 /* LLMService.swift */,
+				AK2000000000000000000001 /* BPETokenizer.swift */,
 				AD2000000000000000000001 /* RAGEngine.swift */,
 			);
 			path = Services;
@@ -169,6 +177,7 @@
 				AC2000000000000000000002 /* LLMServiceTests.swift */,
 				AD2000000000000000000002 /* RAGEngineTests.swift */,
 				AI2000000000000000000001 /* ChatViewModelTests.swift */,
+				AL2000000000000000000001 /* BPETokenizerTests.swift */,
 			);
 			path = ZeldaGuideTests;
 			sourceTree = "<group>";
@@ -179,6 +188,7 @@
 				AA2000000000000000000004 /* knowledge_base.db */,
 				AA2000000000000000000005 /* MiniLMEmbedder.mlpackage */,
 				AA2000000000000000000007 /* QwenModel-1B.mlpackage */,
+				AM2000000000000000000001 /* tokenizer.json */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -285,6 +295,7 @@
 				AA1000000000000000000004 /* knowledge_base.db in Resources */,
 				AA1000000000000000000005 /* MiniLMEmbedder.mlpackage in Resources */,
 				AA1000000000000000000007 /* QwenModel-1B.mlpackage in Resources */,
+				AM1000000000000000000001 /* tokenizer.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -301,6 +312,7 @@
 				AB1000000000000000000001 /* KnowledgeChunk.swift in Sources */,
 				AB1000000000000000000002 /* VectorSearchService.swift in Sources */,
 				AC1000000000000000000001 /* LLMService.swift in Sources */,
+				AK1000000000000000000001 /* BPETokenizer.swift in Sources */,
 				AD1000000000000000000001 /* RAGEngine.swift in Sources */,
 				AE1000000000000000000001 /* ChatView.swift in Sources */,
 				AF1000000000000000000001 /* MessageBubbleView.swift in Sources */,

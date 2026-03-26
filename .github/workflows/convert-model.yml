@@ -108,6 +108,14 @@ jobs:
           path: model/QwenModel-${{ github.event.inputs.model_variant }}.mlpackage
           retention-days: 30
 
+      - name: Upload tokenizer.json artifact
+        if: ${{ github.event.inputs.skip_conversion != 'true' && always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: tokenizer.json
+          path: model/tokenizer.json
+          retention-days: 30
+
       # --- Smoke-test-only path (skip_conversion = true) ---
 
       - name: Download existing artifact

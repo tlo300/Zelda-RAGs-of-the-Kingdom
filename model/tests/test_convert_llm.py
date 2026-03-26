@@ -315,6 +315,16 @@ def _patch_heavy(tmp_path, monkeypatch):
 
     compressed_mock.save.side_effect = fake_save
 
+    # save_pretrained must create tokenizer.json in the given directory so the
+    # shutil.copy in convert_llm.py succeeds.
+    def fake_save_pretrained(path):
+        Path(path).mkdir(parents=True, exist_ok=True)
+        (Path(path) / "tokenizer.json").write_text(
+            '{"model":{"type":"BPE","vocab":{},"merges":[]},"added_tokens":[]}',
+            encoding="utf-8",
+        )
+    tokenizer_mock.save_pretrained.side_effect = fake_save_pretrained
+
     transformers_mock = MagicMock()
     transformers_mock.AutoTokenizer.from_pretrained.return_value = tokenizer_mock
     transformers_mock.AutoModelForCausalLM.from_pretrained.return_value = model_mock
@@ -357,6 +367,14 @@ def test_convert_saves_correct_filename(_patch_heavy):
     from model.convert_llm import convert
     convert(str(tmp_path), "1B", "fake-token")
     compressed_mock.save.assert_called_once_with(str(tmp_path / "QwenModel-1B.mlpackage"))
+
+
+def test_convert_saves_tokenizer_json(_patch_heavy):
+    tmp_path, _, _, _ = _patch_heavy
+    from model.convert_llm import convert
+    convert(str(tmp_path), "1B", "fake-token")
+    assert (tmp_path / "tokenizer.json").exists(), \
+        "convert() must save tokenizer.json alongside the .mlpackage"
 
 
 def test_convert_exits_on_filename_mismatch(_patch_heavy):

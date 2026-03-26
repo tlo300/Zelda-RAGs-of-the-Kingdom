@@ -25,7 +25,9 @@ The script exits with a non-zero code on any validation failure:
 import argparse
 import os
 import re
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -171,6 +173,18 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
 
     print(f"Loading {hf_id} …")
     tokenizer = AutoTokenizer.from_pretrained(hf_id, token=hf_token)
+
+    # Save tokenizer.json alongside the model so build-ipa.yml can bundle it in sync.
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tokenizer.save_pretrained(tmp_dir)
+        tok_src = Path(tmp_dir) / "tokenizer.json"
+        if tok_src.exists():
+            shutil.copy(tok_src, out_path / "tokenizer.json")
+            size_kb = (out_path / "tokenizer.json").stat().st_size // 1024
+            print(f"Saved tokenizer.json ({size_kb} KB)")
+        else:
+            print("WARNING: tokenizer.json not found after save_pretrained", file=sys.stderr)
+
     model = AutoModelForCausalLM.from_pretrained(
         hf_id, token=hf_token, torch_dtype=torch_dtype
     )
