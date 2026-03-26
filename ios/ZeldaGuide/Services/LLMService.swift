@@ -5,6 +5,9 @@
 import CoreML
 import Foundation
 import UIKit
+import os
+
+private let llmLog = Logger(subsystem: "com.tlo300.ZeldaGuide", category: "LLMService")
 
 // MARK: - Errors
 
@@ -122,11 +125,15 @@ actor LLMService {
             // CPU-only execution; on device it uses CPU+GPU.
             config.computeUnits = .cpuAndGPU
             let compiledURL = try await compileAndCache(modelURL)
+            llmLog.notice("MLModel.load starting — this may take 30+ min in the simulator")
             let model = try await MLModel.load(contentsOf: compiledURL, configuration: config)
+            llmLog.notice("MLModel.load complete")
             predictor = CoreMLPredictor(model: model)
         } catch let e as LLMError {
+            llmLog.error("LLM load failed: \(e.localizedDescription, privacy: .public)")
             throw e
         } catch {
+            llmLog.error("LLM load failed: \(error.localizedDescription, privacy: .public)")
             throw LLMError.loadFailed(error)
         }
 
@@ -134,8 +141,11 @@ actor LLMService {
             throw LLMError.modelNotFound("tokenizer.json")
         }
         do {
+            llmLog.notice("Loading tokenizer")
             tokenizer = try BPETokenizer(url: tokURL)
+            llmLog.notice("Tokenizer loaded")
         } catch {
+            llmLog.error("Tokenizer load failed: \(error.localizedDescription, privacy: .public)")
             throw LLMError.loadFailed(error)
         }
         registerMemoryWarningHandler()
