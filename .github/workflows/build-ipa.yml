@@ -92,6 +92,16 @@ jobs:
           cd "$RUNNER_TEMP"
           zip -r ZeldaGuide.ipa Payload/
 
+      - name: Build versioned filename
+        id: versioned_name
+        run: |
+          VERSION=$(grep MARKETING_VERSION ios/ZeldaGuide.xcodeproj/project.pbxproj \
+            | head -1 | sed 's/.*= //;s/;//')
+          DATE=$(date -u +%Y%m%d)
+          FILENAME="ZeldaGuide-v${VERSION}-${{ inputs.model_variant }}-${DATE}.ipa"
+          echo "filename=$FILENAME" >> $GITHUB_OUTPUT
+          cp "$RUNNER_TEMP/ZeldaGuide.ipa" "$RUNNER_TEMP/$FILENAME"
+
       - name: Get .ipa size
         id: ipa_size
         run: |
@@ -101,16 +111,30 @@ jobs:
       - name: Upload .ipa artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ZeldaGuide.ipa
-          path: ${{ runner.temp }}/ZeldaGuide.ipa
+          name: ${{ steps.versioned_name.outputs.filename }}
+          path: ${{ runner.temp }}/${{ steps.versioned_name.outputs.filename }}
           retention-days: 30
+
+      - name: Upload to kDrive
+        if: env.KDRIVE_USER != ''
+        env:
+          KDRIVE_USER: ${{ secrets.KDRIVE_USER }}
+          KDRIVE_PASS: ${{ secrets.KDRIVE_PASS }}
+          KDRIVE_FOLDER: ${{ secrets.KDRIVE_FOLDER }}
+        run: |
+          brew install rclone
+          OBSCURED=$(rclone obscure "$KDRIVE_PASS")
+          rclone copy "$RUNNER_TEMP/${{ steps.versioned_name.outputs.filename }}" \
+            ":webdav,url=https://connect.drive.infomaniak.com,vendor=nextcloud,user=$KDRIVE_USER,pass=$OBSCURED:$KDRIVE_FOLDER" \
+            --progress
+          echo "Uploaded ${{ steps.versioned_name.outputs.filename }} to kDrive $KDRIVE_FOLDER"
 
       - name: Write job summary
         if: always()
         run: |
           echo "## Build .ipa Summary" >> $GITHUB_STEP_SUMMARY
           echo "- Runner: macos-14" >> $GITHUB_STEP_SUMMARY
-          echo "- Artifact: ZeldaGuide.ipa" >> $GITHUB_STEP_SUMMARY
+          echo "- Artifact: ${{ steps.versioned_name.outputs.filename }}" >> $GITHUB_STEP_SUMMARY
           echo "- Model variant: Qwen2.5 ${{ inputs.model_variant }}" >> $GITHUB_STEP_SUMMARY
           echo "- Size: ${{ steps.ipa_size.outputs.size }}" >> $GITHUB_STEP_SUMMARY
           echo "- Signing: unsigned (AltStore / SideStore)" >> $GITHUB_STEP_SUMMARY
