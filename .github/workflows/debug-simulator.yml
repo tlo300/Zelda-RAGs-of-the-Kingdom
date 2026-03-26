@@ -1,14 +1,16 @@
 # .github/workflows/debug-simulator.yml
 # Builds the app with real Core ML models, launches it on an iOS simulator,
-# and streams the console log so you can see model loading output and any errors.
+# and exercises the full RAG pipeline end-to-end.
 #
-# ChatViewModel.init() calls engine.prepare() immediately, so launching the app
-# automatically exercises the full LLM load → embedding load → ready path.
-# Any crash or LLMError surfaces via print() or a chat message.
+# Launch flow:
+#   ChatViewModel.init() calls engine.prepare() (LLM + embedding load).
+#   Once ready, the --autoquery flag triggers a test question ("What is a Korok Seed?").
+#   The answer is printed as [CI-AUTOQUERY] PASS/FAIL and the job fails if FAIL is seen.
 #
 # Usage:
 #   Trigger manually via Actions → "Debug on iOS Simulator" → Run workflow.
 #   Provide the run ID from a successful convert-model.yml run.
+#   Current recommended LLM run: 23591992777 (max_context=2048, 1B model)
 
 name: Debug on iOS Simulator
 
@@ -162,30 +164,35 @@ jobs:
 
       - name: Launch app on simulator
         run: |
-          # --console-pty pipes the app's stdout/stderr here (print() calls).
-          # Launch is non-blocking; the app runs in the background.
-          xcrun simctl launch "${{ env.SIMULATOR_UDID }}" com.tlo300.ZeldaGuide 2>&1
-          echo "App launched"
+          # --autoquery tells ChatViewModel to auto-submit a test question after the engine
+          # is ready and print a [CI-AUTOQUERY] PASS/FAIL line we can grep for below.
+          xcrun simctl launch "${{ env.SIMULATOR_UDID }}" com.tlo300.ZeldaGuide \
+            --autoquery 2>&1
+          echo "App launched with --autoquery"
 
-      - name: Wait for model to load (up to 10 min)
+      - name: Wait for RAG pipeline to complete (up to 15 min)
         run: |
-          # Poll the log for the LLMService ready-or-error message.
-          # LLMService prints nothing on success; ChatViewModel would set isReady=true.
-          # We look for either a crash indicator or silence (normal load completes).
-          echo "Waiting for model load to complete..."
-          for i in $(seq 1 60); do
+          # Poll until we see a [CI-AUTOQUERY] result, a crash, or the timeout.
+          # Model load alone can take 5–10 min on the simulator; RAG adds ~1 min.
+          echo "Waiting for [CI-AUTOQUERY] PASS or FAIL..."
+          for i in $(seq 1 90); do
             sleep 10
             echo "--- elapsed: ${i}0s ---"
-            # If the app process has died, stop waiting.
+            # Stop if the app process has died (crash).
             if ! xcrun simctl spawn "${{ env.SIMULATOR_UDID }}" \
                 ps ax 2>/dev/null | grep -q ZeldaGuide; then
               echo "ZeldaGuide process is gone — likely crashed."
               break
             fi
-            # Look for known success or error markers in the streamed log.
-            if grep -q "LLMService\|EmbeddingError\|LLMError\|Memory warning\|Guide unavailable\|LLM unavailable" \
+            # Stop as soon as we have a CI-AUTOQUERY result.
+            if grep -q "CI-AUTOQUERY" "$RUNNER_TEMP/simulator.log" 2>/dev/null; then
+              echo "Found [CI-AUTOQUERY] marker — stopping early."
+              break
+            fi
+            # Also surface any LLM/embedding errors we might be waiting on.
+            if grep -q "EmbeddingError\|LLMError\|Guide unavailable\|LLM unavailable" \
                 "$RUNNER_TEMP/simulator.log" 2>/dev/null; then
-              echo "Found relevant log output — printing early."
+              echo "Found error marker — stopping early."
               break
             fi
           done
@@ -215,13 +222,37 @@ jobs:
             echo "No crash reports found — app did not crash (or crash report not yet written)."
           fi
 
+      - name: Assert RAG pipeline passed
+        run: |
+          LOG="$RUNNER_TEMP/simulator.log"
+          if grep -q "\[CI-AUTOQUERY\] PASS" "$LOG" 2>/dev/null; then
+            echo "RAG pipeline: PASS"
+            grep "\[CI-AUTOQUERY\]" "$LOG"
+          elif grep -q "\[CI-AUTOQUERY\] FAIL" "$LOG" 2>/dev/null; then
+            echo "RAG pipeline: FAIL"
+            grep "\[CI-AUTOQUERY\]" "$LOG"
+            exit 1
+          else
+            echo "RAG pipeline: no [CI-AUTOQUERY] marker found — model likely did not finish loading or app crashed."
+            exit 1
+          fi
+
       - name: Write job summary
         if: always()
         run: |
+          LOG="$RUNNER_TEMP/simulator.log"
+          if grep -q "\[CI-AUTOQUERY\] PASS" "$LOG" 2>/dev/null; then
+            RESULT="PASS ✓"
+          elif grep -q "\[CI-AUTOQUERY\] FAIL" "$LOG" 2>/dev/null; then
+            RESULT="FAIL ✗"
+          else
+            RESULT="No result (timeout or crash)"
+          fi
           echo "## Debug Simulator Summary" >> $GITHUB_STEP_SUMMARY
           echo "- Runner: macos-15" >> $GITHUB_STEP_SUMMARY
           echo "- Simulator UDID: ${{ env.SIMULATOR_UDID }}" >> $GITHUB_STEP_SUMMARY
           echo "- Model variant: Qwen2.5 ${{ inputs.model_variant }}" >> $GITHUB_STEP_SUMMARY
           echo "- LLM run ID: ${{ inputs.llm_run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- RAG pipeline result: $RESULT" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "See the 'Print simulator console log' and 'Check for crash reports' steps for output." >> $GITHUB_STEP_SUMMARY

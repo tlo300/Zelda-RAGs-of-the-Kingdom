@@ -26,7 +26,13 @@ final class ChatViewModel: ObservableObject {
                 do {
                     try await engine.prepare()
                     isReady = true
+                    if ProcessInfo.processInfo.arguments.contains("--autoquery") {
+                        await runCIAutoQuery(engine: engine)
+                    }
                 } catch {
+                    if ProcessInfo.processInfo.arguments.contains("--autoquery") {
+                        print("[CI-AUTOQUERY] FAIL: engine.prepare() threw — \(error.localizedDescription)")
+                    }
                     messages.append(ChatMessage(
                         role: .assistant,
                         text: "[LLM unavailable: \(error.localizedDescription)]"
@@ -104,5 +110,24 @@ final class ChatViewModel: ObservableObject {
         }
         isGenerating = false
         isLoading = false
+    }
+
+    /// CI-only: submits a fixed test question and prints a pass/fail marker for debug-simulator.yml.
+    /// Invoked automatically when the app is launched with `--autoquery`.
+    private func runCIAutoQuery(engine: RAGEngine) async {
+        let question = "What is a Korok Seed?"
+        print("[CI-AUTOQUERY] Engine ready — submitting test query: \(question)")
+        let stream = await engine.answer(question: question)
+        var answer = ""
+        for await token in stream {
+            answer += token
+        }
+        if answer.isEmpty {
+            print("[CI-AUTOQUERY] FAIL: got empty answer")
+        } else if answer.hasPrefix("[Error:") {
+            print("[CI-AUTOQUERY] FAIL: \(answer)")
+        } else {
+            print("[CI-AUTOQUERY] PASS: \(answer.prefix(200))")
+        }
     }
 }
