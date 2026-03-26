@@ -31,6 +31,9 @@
 		AK1000000000000000000001 /* BPETokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AK2000000000000000000001 /* BPETokenizer.swift */; };
 		AL1000000000000000000001 /* BPETokenizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AL2000000000000000000001 /* BPETokenizerTests.swift */; };
 		AM1000000000000000000001 /* tokenizer.json in Resources */ = {isa = PBXBuildFile; fileRef = AM2000000000000000000001 /* tokenizer.json */; };
+		AN1000000000000000000001 /* vocab.txt in Resources */ = {isa = PBXBuildFile; fileRef = AN2000000000000000000001 /* vocab.txt */; };
+		AO1000000000000000000001 /* WordPieceTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AO2000000000000000000001 /* WordPieceTokenizer.swift */; };
+		AP1000000000000000000001 /* WordPieceTokenizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AP2000000000000000000001 /* WordPieceTokenizerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -58,6 +61,9 @@
 		AK2000000000000000000001 /* BPETokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BPETokenizer.swift; sourceTree = "<group>"; };
 		AL2000000000000000000001 /* BPETokenizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BPETokenizerTests.swift; sourceTree = "<group>"; };
 		AM2000000000000000000001 /* tokenizer.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "tokenizer.json"; sourceTree = "<group>"; };
+		AN2000000000000000000001 /* vocab.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "vocab.txt"; sourceTree = "<group>"; };
+		AO2000000000000000000001 /* WordPieceTokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordPieceTokenizer.swift; sourceTree = "<group>"; };
+		AP2000000000000000000001 /* WordPieceTokenizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordPieceTokenizerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -110,6 +116,7 @@
 				AD1000000000000000000002 /* RAGEngineTests.swift in Sources */,
 				AI1000000000000000000001 /* ChatViewModelTests.swift in Sources */,
 				AL1000000000000000000001 /* BPETokenizerTests.swift in Sources */,
+				AP1000000000000000000001 /* WordPieceTokenizerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -155,6 +162,7 @@
 				AB2000000000000000000002 /* VectorSearchService.swift */,
 				AC2000000000000000000001 /* LLMService.swift */,
 				AK2000000000000000000001 /* BPETokenizer.swift */,
+				AO2000000000000000000001 /* WordPieceTokenizer.swift */,
 				AD2000000000000000000001 /* RAGEngine.swift */,
 			);
 			path = Services;
@@ -178,6 +186,7 @@
 				AD2000000000000000000002 /* RAGEngineTests.swift */,
 				AI2000000000000000000001 /* ChatViewModelTests.swift */,
 				AL2000000000000000000001 /* BPETokenizerTests.swift */,
+				AP2000000000000000000001 /* WordPieceTokenizerTests.swift */,
 			);
 			path = ZeldaGuideTests;
 			sourceTree = "<group>";
@@ -189,6 +198,7 @@
 				AA2000000000000000000005 /* MiniLMEmbedder.mlmodelc */,
 				AA2000000000000000000007 /* QwenModel-1B.mlmodelc */,
 				AM2000000000000000000001 /* tokenizer.json */,
+				AN2000000000000000000001 /* vocab.txt */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -296,6 +306,7 @@
 				AA1000000000000000000005 /* MiniLMEmbedder.mlmodelc in Resources */,
 				AA1000000000000000000007 /* QwenModel-1B.mlmodelc in Resources */,
 				AM1000000000000000000001 /* tokenizer.json in Resources */,
+				AN1000000000000000000001 /* vocab.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -313,6 +324,7 @@
 				AB1000000000000000000002 /* VectorSearchService.swift in Sources */,
 				AC1000000000000000000001 /* LLMService.swift in Sources */,
 				AK1000000000000000000001 /* BPETokenizer.swift in Sources */,
+				AO1000000000000000000001 /* WordPieceTokenizer.swift in Sources */,
 				AD1000000000000000000001 /* RAGEngine.swift in Sources */,
 				AE1000000000000000000001 /* ChatView.swift in Sources */,
 				AF1000000000000000000001 /* MessageBubbleView.swift in Sources */,

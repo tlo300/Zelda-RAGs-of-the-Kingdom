@@ -223,44 +223,65 @@ final class RAGEngineTests: XCTestCase {
         )
     }
 
-    // MARK: - CoreMLEmbeddingService.buildInputArrays shape contract
+    // MARK: - CoreMLEmbeddingService.buildInputArrays shape and BERT contract
+
+    private func makeTokenizer() throws -> WordPieceTokenizer {
+        guard let url = Bundle.main.url(forResource: "vocab", withExtension: "txt") else {
+            throw XCTSkip("vocab.txt not in bundle — skipping buildInputArrays shape tests")
+        }
+        return try WordPieceTokenizer(url: url)
+    }
 
     func testBuildInputArraysShapeIsAlways1x128() throws {
+        let tokenizer = try makeTokenizer()
         let cases = ["", "Hi", "What's the best first shrine to visit?",
                      String(repeating: "a", count: 200)]
         for text in cases {
-            let (ids, mask) = try CoreMLEmbeddingService.buildInputArrays(for: text)
+            let (ids, mask) = try CoreMLEmbeddingService.buildInputArrays(for: text, using: tokenizer)
             XCTAssertEqual(ids.shape,  [1, 128], "inputIDs shape must be [1,128] for: \(text.prefix(20))")
             XCTAssertEqual(mask.shape, [1, 128], "attentionMask shape must be [1,128] for: \(text.prefix(20))")
         }
     }
 
-    func testBuildInputArraysPaddingPositionsAreZero() throws {
-        // "Hi" = 2 UTF-8 bytes → positions 2…127 must be zero-padded
-        let (ids, mask) = try CoreMLEmbeddingService.buildInputArrays(for: "Hi")
-        for i in 2..<128 {
-            XCTAssertEqual(ids[i].int32Value,  0, "inputIDs[\(i)] should be 0 (padding)")
-            XCTAssertEqual(mask[i].int32Value, 0, "attentionMask[\(i)] should be 0 (padding)")
+    func testBuildInputArraysCLSSEPContract() throws {
+        // "Hi" → WordPiece: [CLS=101, hi=7632, SEP=102, 0, 0, ...]
+        // Positions 0,1,2 are real tokens (mask=1); positions 3+ are padding (mask=0, ids=0).
+        let tokenizer = try makeTokenizer()
+        let (ids, mask) = try CoreMLEmbeddingService.buildInputArrays(for: "Hi", using: tokenizer)
+        XCTAssertEqual(ids[0].int32Value, 101, "inputIDs[0] must be [CLS]=101")
+        XCTAssertEqual(ids[2].int32Value, 102, "inputIDs[2] must be [SEP]=102")
+        XCTAssertEqual(mask[0].int32Value, 1, "attentionMask[0] must be 1 ([CLS])")
+        XCTAssertEqual(mask[1].int32Value, 1, "attentionMask[1] must be 1 (hi token)")
+        XCTAssertEqual(mask[2].int32Value, 1, "attentionMask[2] must be 1 ([SEP])")
+        for i in 3..<128 {
+            XCTAssertEqual(ids[i].int32Value,  0, "inputIDs[\(i)] must be 0 (padding)")
+            XCTAssertEqual(mask[i].int32Value, 0, "attentionMask[\(i)] must be 0 (padding)")
         }
-        XCTAssertEqual(mask[0].int32Value, 1, "attentionMask[0] should be 1 (real token)")
-        XCTAssertEqual(mask[1].int32Value, 1, "attentionMask[1] should be 1 (real token)")
     }
 
     func testBuildInputArraysLongTextTruncatedTo128() throws {
-        let longText = String(repeating: "a", count: 200)
-        let (ids, mask) = try CoreMLEmbeddingService.buildInputArrays(for: longText)
+        let tokenizer = try makeTokenizer()
+        // 200 separate single-letter words: each "a" is a whole-word token (ID 1037 in BERT).
+        // 200 tokens >> 126 (maxLength-2), so truncation is guaranteed to fill all 128 slots.
+        let longText = Array(repeating: "a", count: 200).joined(separator: " ")
+        let (ids, mask) = try CoreMLEmbeddingService.buildInputArrays(for: longText, using: tokenizer)
         XCTAssertEqual(ids.shape, [1, 128])
-        // All 128 positions are real tokens — mask should be all 1s
-        for i in 0..<128 {
-            XCTAssertEqual(mask[i].int32Value, 1, "attentionMask[\(i)] should be 1 (no padding)")
-        }
+        XCTAssertEqual(ids[0].int32Value,   101, "First token must be [CLS]=101")
+        XCTAssertEqual(ids[127].int32Value, 102, "Last token must be [SEP]=102 (truncation boundary)")
+        XCTAssertEqual(mask[127].int32Value, 1,  "Mask at truncation boundary must be 1 (SEP is real)")
     }
 
-    func testBuildInputArraysEmptyTextIsAllZeroPadded() throws {
-        let (ids, mask) = try CoreMLEmbeddingService.buildInputArrays(for: "")
-        for i in 0..<128 {
-            XCTAssertEqual(ids[i].int32Value,  0, "inputIDs[\(i)] should be 0 for empty input")
-            XCTAssertEqual(mask[i].int32Value, 0, "attentionMask[\(i)] should be 0 for empty input")
+    func testBuildInputArraysEmptyTextGivesCLSSEPThenPadding() throws {
+        // Empty text → [CLS=101, SEP=102, 0, 0, ...]  (no subword tokens)
+        let tokenizer = try makeTokenizer()
+        let (ids, mask) = try CoreMLEmbeddingService.buildInputArrays(for: "", using: tokenizer)
+        XCTAssertEqual(ids[0].int32Value,  101, "inputIDs[0] must be [CLS]=101")
+        XCTAssertEqual(ids[1].int32Value,  102, "inputIDs[1] must be [SEP]=102")
+        XCTAssertEqual(mask[0].int32Value, 1,   "attentionMask[0] must be 1 ([CLS])")
+        XCTAssertEqual(mask[1].int32Value, 1,   "attentionMask[1] must be 1 ([SEP])")
+        for i in 2..<128 {
+            XCTAssertEqual(ids[i].int32Value,  0, "inputIDs[\(i)] must be 0 (padding)")
+            XCTAssertEqual(mask[i].int32Value, 0, "attentionMask[\(i)] must be 0 (padding)")
         }
     }
 
