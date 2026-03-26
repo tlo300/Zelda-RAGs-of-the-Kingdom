@@ -110,12 +110,13 @@ actor CoreMLEmbeddingService: EmbeddingService {
         ])
         let result = try await model.prediction(from: features)
 
-        // all-MiniLM-L6-v2 exported via coremltools uses "sentence_embedding"; fall back
-        // to "embeddings" if the export script used a different output name.
-        guard let mla = result.featureValue(for: "sentence_embedding")?.multiArrayValue
+        // coremltools names the output based on the ct.TensorType name passed at conversion time.
+        // Our convert_embeddings.py uses "embedding"; fall back to legacy names for older builds.
+        guard let mla = result.featureValue(for: "embedding")?.multiArrayValue
+                     ?? result.featureValue(for: "sentence_embedding")?.multiArrayValue
                      ?? result.featureValue(for: "embeddings")?.multiArrayValue else {
             throw EmbeddingError.invalidOutput(
-                "Model output missing expected key ('sentence_embedding' or 'embeddings')")
+                "Model output missing expected key ('embedding', 'sentence_embedding', or 'embeddings')")
         }
 
         let dims      = ModelConfig.embeddingDimensions
