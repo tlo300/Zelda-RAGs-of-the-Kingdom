@@ -262,11 +262,10 @@ actor RAGEngine {
         if chunks.isEmpty {
             contextBlock = "(No relevant information found in the knowledge base.)"
         } else {
-            // Limit each chunk to 500 characters (~130 BPE tokens) so the full assembled
-            // prompt stays within the 512-token model limit. Remove this cap after
-            // re-running convert-model with max_context = 2048 (issue #83).
+            // Limit each chunk to 1500 characters (~400 BPE tokens) to stay comfortably
+            // within the 2048-context model limit with 5 chunks + system prompt overhead.
             contextBlock = chunks.enumerated().map { index, chunk in
-                let text = String(chunk.chunkText.prefix(500))
+                let text = String(chunk.chunkText.prefix(1500))
                 return "[\(index + 1)] (source: \(chunk.source) | \(chunk.pageTitle))\n\(text)"
             }.joined(separator: "\n\n")
         }
