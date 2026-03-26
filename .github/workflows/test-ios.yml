@@ -5,6 +5,11 @@
 name: iOS unit tests
 
 on:
+  push:
+    branches: ['**']
+    paths:
+      - 'ios/**'
+      - '.github/workflows/test-ios.yml'
   pull_request:
   workflow_dispatch:
 
