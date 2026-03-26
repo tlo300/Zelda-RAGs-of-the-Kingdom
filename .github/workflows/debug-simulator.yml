@@ -168,8 +168,8 @@ jobs:
           # is ready and print a [CI-AUTOQUERY] PASS/FAIL line we can grep for below.
           # --stdout captures Swift print() output (os_log goes to simulator.log via log stream).
           xcrun simctl launch \
-            --stdout "$RUNNER_TEMP/app_stdout.log" \
-            --stderr "$RUNNER_TEMP/app_stdout.log" \
+            "--stdout=$RUNNER_TEMP/app_stdout.log" \
+            "--stderr=$RUNNER_TEMP/app_stdout.log" \
             "${{ env.SIMULATOR_UDID }}" com.tlo300.ZeldaGuide \
             --autoquery
           echo "App launched with --autoquery"
