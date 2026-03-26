@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #78 real Qwen2.5 BPE tokenizer — BPETokenizer.swift replaces BundledTokenizer stub; tokenizer.json injected by CI; .ipa built from run 23587309954 (llm_run_id=23563734620 + tokenizer_run_id=23587143619)
-In progress     : PR #79 open for #78 — pending review/merge
+Last completed  : #80 fix pre-compile Core ML models in CI + fix BPETokenizerTests setUp() throws compile error; merged via PR #80
+In progress     : (none)
 Blocked         : (none)
-Last session    : 2026-03-26 — #78 complete; .ipa with real BPE tokenizer ready for device test; build-ipa now takes optional tokenizer_run_id for skip_conversion builds
+Last session    : 2026-03-26 — #80 merged; CI green on main; iOS unit tests passing
 
 ---
 
@@ -224,7 +224,7 @@ Last session    : 2026-03-26 — #78 complete; .ipa with real BPE tokenizer read
 | #72   | Simulator CI + embedding shape unit tests | 4 | merged |
 | #75   | Fix embedding output key mismatch | 4 | merged |
 | #77   | Fix llm.load() never called + EOS token + race condition | 4 | merged |
-| #78   | Replace BundledTokenizer with real Qwen2.5 BPE tokenizer | 4 | PR #79 |
+| #78   | Replace BundledTokenizer with real Qwen2.5 BPE tokenizer | 4 | merged |
 | #18   | App performance tuning and model warm-up | 4 | backlog |
 | #69   | Add in-app log viewer for on-device debugging | 4 | backlog |
 
