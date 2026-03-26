@@ -116,6 +116,38 @@ jobs:
           path: model/tokenizer.json
           retention-days: 30
 
+      # --- Tokenizer (both paths) ---
+      # Downloads tokenizer.json from HuggingFace without loading model weights (~5 s).
+      # Runs on the skip_conversion path so build-ipa.yml always has a tokenizer artifact.
+
+      - name: Download and upload tokenizer.json (skip path)
+        if: ${{ github.event.inputs.skip_conversion == 'true' }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python - <<'PYEOF'
+          import os, tempfile, shutil
+          from pathlib import Path
+          from transformers import AutoTokenizer
+          variant = os.environ["MODEL_VARIANT"]
+          hf_ids = {"1B": "Qwen/Qwen2.5-1.5B-Instruct", "3B": "Qwen/Qwen2.5-3B-Instruct"}
+          hf_id = hf_ids[variant]
+          tok = AutoTokenizer.from_pretrained(hf_id, token=os.environ.get("HF_TOKEN",""))
+          with tempfile.TemporaryDirectory() as tmp:
+              tok.save_pretrained(tmp)
+              shutil.copy(Path(tmp) / "tokenizer.json", "model/tokenizer.json")
+          size_kb = Path("model/tokenizer.json").stat().st_size // 1024
+          print(f"tokenizer.json saved ({size_kb} KB)")
+          PYEOF
+
+      - name: Upload tokenizer.json artifact (skip path)
+        if: ${{ github.event.inputs.skip_conversion == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: tokenizer.json
+          path: model/tokenizer.json
+          retention-days: 30
+
       # --- Smoke-test-only path (skip_conversion = true) ---
 
       - name: Download existing artifact
