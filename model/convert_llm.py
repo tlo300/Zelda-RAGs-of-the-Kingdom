@@ -71,8 +71,12 @@ def _parse_modelconfig_filename(swift_path: Path, variant: str) -> str:
     Read ModelConfig.swift and extract the modelFilename for the given variant.
 
     Looks for the pattern:
-        case .qwen1B: return "QwenModel-1B.mlpackage"
-        case .qwen3B: return "QwenModel-3B.mlpackage"
+        case .qwen1B: return "QwenModel-1B.mlmodelc"
+        case .qwen3B: return "QwenModel-3B.mlmodelc"
+
+    Note: the app bundles a pre-compiled .mlmodelc (produced by xcrun coremlcompiler
+    in build-ipa.yml), so ModelConfig.swift uses the .mlmodelc extension even though
+    this script outputs a .mlpackage.  _assert_filename_sync compares stems only.
     """
     swift_key = "qwen1B" if variant == "1B" else "qwen3B"
     try:
@@ -96,11 +100,19 @@ def _parse_modelconfig_filename(swift_path: Path, variant: str) -> str:
 
 
 def _assert_filename_sync(derived: str, from_config: str) -> None:
-    """Exit non-zero if the script's derived filename differs from ModelConfig.swift."""
-    if derived != from_config:
+    """Exit non-zero if the model name stems don't match.
+
+    Compares stems (without extension) because this script outputs a .mlpackage while
+    ModelConfig.swift references the compiled .mlmodelc.  Both must share the same
+    base name (e.g. 'QwenModel-1B') so build-ipa.yml can compile the right artifact.
+    """
+    derived_stem = Path(derived).stem
+    config_stem = Path(from_config).stem
+    if derived_stem != config_stem:
         print(
-            f"ERROR: Filename mismatch — script would produce '{derived}' "
-            f"but ModelConfig.swift expects '{from_config}'. "
+            f"ERROR: Model name mismatch — script would produce '{derived}' "
+            f"but ModelConfig.swift expects '{from_config}' "
+            f"(stems: '{derived_stem}' vs '{config_stem}'). "
             "Update one of them so they agree before running CI.",
             file=sys.stderr,
         )
@@ -243,10 +255,11 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     gc.collect()
 
     # --- Core ML conversion ---
-    # Cap dynamic sequence at 512 tokens (prompt + context + answer).
+    # Cap dynamic sequence at 2048 tokens (system + RAG context + question + answer).
+    # 512 was too small for 5 × 500-word RAG chunks and caused NSException crashes.
     # coremltools recognises the torch-level palettization and produces a
     # compressed mlpackage directly — no post-conversion quantization needed.
-    max_context = 512
+    max_context = 2048
     print("Converting to Core ML …")
     compressed = ct.convert(
         traced,

@@ -67,9 +67,13 @@ struct CoreMLPredictor: LLMPredictor {
                 domain: "LLMService", code: -1,
                 userInfo: [NSLocalizedDescriptionKey: "Model output missing 'logits' key"]))
         }
-        // Shape: [1, seqLen, vocabSize] — extract the last token position.
-        let vocabSize  = mla.shape[2].intValue
-        let lastOffset = (seqLen - 1) * vocabSize
+        // Shape: [1, returnedSeqLen, vocabSize].
+        // Some CoreML compilations return the full sequence; others return only the last
+        // token ([1, 1, vocabSize]). Use mla.shape[1] (actual returned length) — NOT
+        // the input seqLen — to avoid an out-of-bounds MLMultiArray access.
+        let returnedSeqLen = mla.shape[1].intValue
+        let vocabSize      = mla.shape[2].intValue
+        let lastOffset     = (returnedSeqLen - 1) * vocabSize
         return (0..<vocabSize).map { mla[lastOffset + $0].floatValue }
     }
 }
@@ -187,6 +191,10 @@ actor LLMService {
         let maxNew = ModelConfig.maxOutputTokens
 
         for _ in 0..<maxNew {
+            // Stop before exceeding the model's RangeDim upper bound — passing more tokens
+            // than the compiled max_context raises an uncatchable NSException.
+            if inputTokens.count >= ModelConfig.modelMaxSequenceLength { break }
+
             // Yield the actor so that a concurrent generate() call can cancel this task.
             await Task.yield()
             if Task.isCancelled { break }

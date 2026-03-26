@@ -95,6 +95,12 @@ def test_assert_filename_sync_passes():
     _assert_filename_sync("QwenModel-1B.mlpackage", "QwenModel-1B.mlpackage")
 
 
+def test_assert_filename_sync_passes_cross_extension():
+    # build-ipa.yml compiles .mlpackage → .mlmodelc; ModelConfig.swift uses .mlmodelc
+    # while this script outputs .mlpackage.  Stem comparison must accept this pair.
+    _assert_filename_sync("QwenModel-1B.mlpackage", "QwenModel-1B.mlmodelc")
+
+
 def test_assert_filename_sync_exits_on_mismatch():
     with pytest.raises(SystemExit) as exc:
         _assert_filename_sync("QwenModel-1B.mlpackage", "QwenModel-WRONG.mlpackage")
