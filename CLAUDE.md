@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #81 fix iOS unit test CI (setUp() throws, actor await, mlmodelc stubs); CI green on main
-In progress     : build-ipa run 23589258247 in progress (llm_run_id=23563734620 + tokenizer_run_id=23587143619)
+Last completed  : #82 bump build-ipa runner to macos-15 for CoreML8 support; IPA built: ZeldaGuide-v1.0-1B-20260326-r14.ipa (run 23589654917)
+In progress     : (none)
 Blocked         : (none)
-Last session    : 2026-03-26 — #81 merged; CI green; new .ipa build triggered
+Last session    : 2026-03-26 — #82 merged; unit tests + build-ipa both green on main; IPA ready to sideload
 
 ---
 
