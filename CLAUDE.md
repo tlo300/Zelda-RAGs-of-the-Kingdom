@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #72 simulator CI + embedding shape tests — test-ios.yml runs XCTest on iPhone simulator on every PR; CoreMLEmbeddingService.buildInputArrays extracted as testable static; 4 shape contract tests added; would have caught #70 before sideload
+Last completed  : #75 fix embedding output key — RAGEngine.swift now checks 'embedding' (the actual coremltools output name) before legacy fallbacks; fixes "Model output missing expected key" error seen on device
 In progress     : (none)
-Blocked         : build-ipa.yml with llm_run_id=23563734620 is running (shape fix #71 not yet in tested .ipa)
-Last session    : 2026-03-26 — fixed 3 device errors: #66 placeholder models, #70 embedding shape mismatch (1x40 vs 1x128), #72 simulator CI + shape tests; build-ipa.yml now needs llm_run_id from convert-model run; use run ID 23563734620 for next build
+Blocked         : need new build-ipa triggered with llm_run_id=23563734620 and sideloaded to test the fix
+Last session    : 2026-03-26 — fixed embedding output key mismatch (#75); next step is trigger build-ipa and sideload, then start #18
 
 ---
 
@@ -222,6 +222,7 @@ Last session    : 2026-03-26 — fixed 3 device errors: #66 placeholder models, 
 | #66   | Fix bundle real Core ML models in .ipa | 4 | merged |
 | #70   | Fix embedding input shape (1x40 vs 1x128) | 4 | merged |
 | #72   | Simulator CI + embedding shape unit tests | 4 | merged |
+| #75   | Fix embedding output key mismatch | 4 | merged |
 | #18   | App performance tuning and model warm-up | 4 | backlog |
 | #69   | Add in-app log viewer for on-device debugging | 4 | backlog |
 
