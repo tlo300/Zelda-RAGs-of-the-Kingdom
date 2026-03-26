@@ -190,17 +190,17 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #85/#88 fix coremlcompiler --platform iOS flag (--target-platform ignored; 'iphoneos' silently fell back to macOS)
-In progress     : r21 IPA build blocked — GitHub Actions macOS quota exhausted for billing period
-Blocked         : macOS runner minutes exhausted; r21 cannot build until quota resets or paid minutes added
-Last session    : 2026-03-26 — #85 root cause identified across 3 PRs; correct fix on main; quota hit before r21 could run
+Last completed  : #89 enhance debug-simulator for full RAG pipeline + bump 2048-context limits (merged as #90)
+In progress     : debug-simulator run 23598467857 — exercising full RAG pipeline with 2048-context model (run 23591992777)
+Blocked         : nothing — $10 Actions budget cap set; CI is running again
+Last session    : 2026-03-26 — billing blocked by $0 Actions budget; fixed; #89/#90 merged; debug-simulator triggered
 
 Notes:
-- Root cause chain: r18/r19 used --target-platform (ignored), r20 used --platform iphoneos (wrong value, also ignored), r21 needs --platform iOS (correct)
-- Fix is on main — just needs a fresh build-ipa.yml run with llm_run_id=23563734620 tokenizer_run_id=23587143619 once quota resets
-- r19/r20 both still compile for macOS; do NOT sideload them — "incorrect format" error will persist
-- Once convert-model run 23591992777 (max_context=2048) completes: bump ModelConfig.swift limits, build fresh IPA, test on device
-- debug-simulator workflow (debug-simulator.yml) lets you run real model loading on simulator; trigger with llm_run_id=23563734620 tokenizer_run_id=23587143619
+- ModelConfig.swift now uses 2048 limits (run 23591992777): maxSequenceLength=2048, maxContextTokens=1500, maxOutputTokens=512, ragTopK=5
+- debug-simulator run 23598467857 will produce [CI-AUTOQUERY] PASS/FAIL in the simulator log
+- If debug-simulator PASSes: trigger build-ipa.yml with llm_run_id=23591992777 tokenizer_run_id=23587143619 for a fresh IPA
+- If debug-simulator FAILs: read the [CI-AUTOQUERY] line in the simulator log to diagnose
+- Do NOT sideload r19/r20 .ipa — those compiled for macOS, will give "incorrect format" on device
 
 ---
 
@@ -232,6 +232,7 @@ Notes:
 | #75   | Fix embedding output key mismatch | 4 | merged |
 | #77   | Fix llm.load() never called + EOS token + race condition | 4 | merged |
 | #78   | Replace BundledTokenizer with real Qwen2.5 BPE tokenizer | 4 | merged |
+| #89   | Enhance debug-simulator for full RAG pipeline + bump 2048-context limits | 4 | merged |
 | #18   | App performance tuning and model warm-up | 4 | backlog |
 | #69   | Add in-app log viewer for on-device debugging | 4 | backlog |
 
