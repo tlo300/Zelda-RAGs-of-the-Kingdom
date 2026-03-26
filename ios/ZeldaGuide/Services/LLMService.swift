@@ -245,8 +245,10 @@ actor LLMService {
                 if v > maxLogit { maxLogit = v; nextToken = Int32(i) }
             }
 
-            // Stop on <|im_end|> (151645) or <|endoftext|> (151643).
-            if nextToken == eosID || nextToken == 151643 {
+            // Stop on <|im_end|> (151645), <|endoftext|> (151643), or <|im_start|> (151644).
+            // Including im_start prevents the model from generating a fake new user/system turn
+            // if it fails to emit im_end first.
+            if nextToken == eosID || nextToken == 151643 || nextToken == 151644 {
                 llmLog.notice("Generation stopped — EOS token \(nextToken, privacy: .public) after \(tokenCount, privacy: .public) tokens")
                 break
             }

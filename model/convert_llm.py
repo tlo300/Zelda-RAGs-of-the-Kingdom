@@ -210,7 +210,10 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
             self.m = m
 
         def forward(self, input_ids, attention_mask):
-            return self.m(input_ids=input_ids, attention_mask=attention_mask).logits
+            # Slice to last token only: [1, seq, vocab] → [1, 1, vocab].
+            # The full-sequence logits tensor grows to >1 GB at 2048-context lengths and
+            # causes OOM kills on device. Returning only the last token reduces it to ~600 KB.
+            return self.m(input_ids=input_ids, attention_mask=attention_mask).logits[:, -1:, :]
 
     wrapped = _LogitsWrapper(model)
     wrapped.eval()
