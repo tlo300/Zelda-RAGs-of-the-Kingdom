@@ -190,13 +190,14 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #84 fix LLM crash — cpuOnly compute units, context overflow guard, shape fix; r18 IPA built (run 23593004449)
+Last completed  : #85 fix coremlcompiler iOS target — --target-platform iphoneos produces iOS-compatible .mlmodelc; r19 IPA built (run 23594776533)
 In progress     : convert-model run 23591992777 (max_context=2048, for future IPA with ragTopK=5 and full context)
 Blocked         : (none)
-Last session    : 2026-03-26 — #84 merged; debug-simulator workflow added; r18 IPA built and on-device testing pending
+Last session    : 2026-03-26 — #85 merged; r19 IPA built; on-device testing pending
 
 Notes:
-- r18 IPA (ZeldaGuide-v1.0-1B-20260326-r18.ipa) uses cpuOnly + ragTopK=2 + 500-char chunk cap + modelMaxSequenceLength=512
+- r19 IPA (ZeldaGuide-v1.0-1B-20260326-r19.ipa) uses cpuOnly + ragTopK=2 + 500-char chunk cap + modelMaxSequenceLength=512 + iOS-targeted coremlcompiler
+- r18 failed with "data couldn't be read because it isn't in the correct format" — root cause was coremlcompiler defaulting to macOS target
 - Once convert-model run 23591992777 (max_context=2048) completes: bump ModelConfig.swift limits, build fresh IPA, test on device
 - debug-simulator workflow (debug-simulator.yml) lets you run real model loading on simulator; trigger with llm_run_id=23563734620 tokenizer_run_id=23587143619
 
