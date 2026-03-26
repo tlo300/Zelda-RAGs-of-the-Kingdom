@@ -204,24 +204,39 @@ actor LLMService {
         var inputTokens = tokenizer.encode(ModelConfig.chatPrompt(userQuery: prompt))
         let eosID  = tokenizer.eosTokenID
         let maxNew = ModelConfig.maxOutputTokens
+        var tokenCount = 0
+
+        llmLog.notice("Generation starting — prompt tokens: \(inputTokens.count, privacy: .public), maxNew: \(maxNew, privacy: .public)")
 
         for _ in 0..<maxNew {
             // Stop before exceeding the model's RangeDim upper bound — passing more tokens
             // than the compiled max_context raises an uncatchable NSException.
-            if inputTokens.count >= ModelConfig.modelMaxSequenceLength { break }
-
-            // Yield the actor so that a concurrent generate() call can cancel this task.
-            await Task.yield()
-            if Task.isCancelled { break }
-
-            if isMemoryPressured {
-                print("[LLMService] Generation paused — memory warning received")
+            if inputTokens.count >= ModelConfig.modelMaxSequenceLength {
+                llmLog.notice("Generation stopped — sequence length limit (\(ModelConfig.modelMaxSequenceLength, privacy: .public)) reached after \(tokenCount, privacy: .public) tokens")
                 break
             }
 
-            guard let logits = try? await predictor.predict(inputIDs: inputTokens) else { break }
+            // Yield the actor so that a concurrent generate() call can cancel this task.
+            await Task.yield()
+            if Task.isCancelled {
+                llmLog.notice("Generation cancelled after \(tokenCount, privacy: .public) tokens")
+                break
+            }
 
-            if Task.isCancelled { break }
+            if isMemoryPressured {
+                llmLog.notice("Generation stopped — memory pressure after \(tokenCount, privacy: .public) tokens")
+                break
+            }
+
+            guard let logits = try? await predictor.predict(inputIDs: inputTokens) else {
+                llmLog.error("Generation stopped — predictor failed after \(tokenCount, privacy: .public) tokens")
+                break
+            }
+
+            if Task.isCancelled {
+                llmLog.notice("Generation cancelled after \(tokenCount, privacy: .public) tokens")
+                break
+            }
 
             // Greedy decoding: pick the token with the highest logit.
             var maxLogit = Float(-Float.infinity)
@@ -231,14 +246,19 @@ actor LLMService {
             }
 
             // Stop on <|im_end|> (151645) or <|endoftext|> (151643).
-            if nextToken == eosID || nextToken == 151643 { break }
+            if nextToken == eosID || nextToken == 151643 {
+                llmLog.notice("Generation stopped — EOS token \(nextToken, privacy: .public) after \(tokenCount, privacy: .public) tokens")
+                break
+            }
             inputTokens.append(nextToken)
+            tokenCount += 1
 
             let text = tokenizer.decode(tokenID: nextToken)
             if !text.isEmpty {
                 continuation.yield(text)
             }
         }
+        llmLog.notice("Generation complete — \(tokenCount, privacy: .public) tokens yielded")
     }
 
     private func registerMemoryWarningHandler() {
