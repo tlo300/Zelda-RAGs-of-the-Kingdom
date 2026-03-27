@@ -157,12 +157,13 @@ actor LLMService {
 
         do {
             let config = MLModelConfiguration()
-            // cpuAndGPU avoids the NE runtime (which can raise uncatchable NSExceptions
-            // on some device/iOS 18 combinations with grouped palettization models) while
-            // also avoiding a hang that .cpuOnly exhibits in the iOS simulator with the
-            // 2048-context model. In the simulator there is no GPU so this falls back to
-            // CPU-only execution; on device it uses CPU+GPU.
-            config.computeUnits = .cpuAndGPU
+            // .all lets Core ML use the Neural Engine, which is required for grouped
+            // palettization (4-bit per_grouped_channel) — the NE is the only runtime
+            // that can decompress these weights.  .cpuAndGPU crashes with an uncatchable
+            // NSException on device because the palettized weight decompression op has
+            // no CPU/GPU fallback.  In the simulator there is no NE so Core ML falls
+            // back to CPU automatically.
+            config.computeUnits = .all
             let compiledURL = try await compileAndCache(modelURL)
             llmLog.notice("MLModel.load starting — this may take 30+ min in the simulator")
             let model = try await MLModel.load(contentsOf: compiledURL, configuration: config)
