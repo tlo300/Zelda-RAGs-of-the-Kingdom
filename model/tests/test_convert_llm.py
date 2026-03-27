@@ -275,7 +275,10 @@ def _make_ct_mock():
 def _make_optimize_mock():
     # Build a predict side_effect that cycles through _SMOKE_TEST_MIN_TOKENS
     # distinct token IDs so the new degenerate-output check doesn't fire.
+    # Also returns "present_kv" so the KV-cache smoke-test loop can proceed.
     vocab_size = 32000
+    # Fake model config dimensions (matches _make_torch_mock cfg: 16 layers, 8 kv_heads, 64 head_dim)
+    _NUM_LAYERS, _NUM_KV_HEADS, _HEAD_DIM = 16, 8, 64
     call_counter = {"n": 0}
 
     def _cycling_predict(inputs):
@@ -283,7 +286,14 @@ def _make_optimize_mock():
         call_counter["n"] += 1
         logits = np.zeros((1, 1, vocab_size), dtype=np.float32)
         logits[0, 0, token_id] = 1.0
-        return {"logits": logits}
+        # Grow the KV cache by the number of new input tokens (default 1)
+        past_kv = inputs.get("past_kv", np.zeros((_NUM_LAYERS, 2, _NUM_KV_HEADS, 1, _HEAD_DIM),
+                                                  dtype=np.float16))
+        new_tokens = inputs.get("input_ids", np.zeros((1, 1), dtype=np.int32)).shape[1]
+        new_past_len = past_kv.shape[3] + new_tokens
+        present_kv = np.zeros((_NUM_LAYERS, 2, _NUM_KV_HEADS, new_past_len, _HEAD_DIM),
+                               dtype=np.float16)
+        return {"logits": logits, "present_kv": present_kv}
 
     # compressed_mock is returned by ct.convert() (torch-level palettization
     # means ct.convert() produces the final compressed model directly)
@@ -395,35 +405,28 @@ def test_convert_exits_on_filename_mismatch(_patch_heavy):
 
 def test_convert_exits_on_short_smoke_test(_patch_heavy):
     tmp_path, _, _, compressed_mock = _patch_heavy
-    # Return fewer than _SMOKE_TEST_MIN_TOKENS predictions by making predict
-    # raise after 5 calls — simpler: just patch _assert_smoke_test target
-    call_count = {"n": 0}
     vocab_size = 32000
+    # Fake model config dimensions (must match _make_torch_mock cfg: 16 layers, 8 kv_heads, 64 head_dim)
+    _NUM_LAYERS, _NUM_KV_HEADS, _HEAD_DIM = 16, 8, 64
 
-    def few_tokens(*args, **kwargs):
-        call_count["n"] += 1
+    def kv_predict(inputs):
+        """Return logits + a present_kv that grows by the number of new input tokens."""
         logits = np.zeros((1, 1, vocab_size), dtype=np.float32)
-        logits[0, 0, 0] = 1.0  # always token 0 (eos-like, but we count by calls)
-        return {"logits": logits}
+        past_kv = inputs.get("past_kv",
+                             np.zeros((_NUM_LAYERS, 2, _NUM_KV_HEADS, 1, _HEAD_DIM),
+                                      dtype=np.float16))
+        new_tokens = inputs.get("input_ids", np.zeros((1, 1), dtype=np.int32)).shape[1]
+        new_past_len = past_kv.shape[3] + new_tokens
+        present_kv = np.zeros((_NUM_LAYERS, 2, _NUM_KV_HEADS, new_past_len, _HEAD_DIM),
+                               dtype=np.float16)
+        return {"logits": logits, "present_kv": present_kv}
 
-    compressed_mock.predict.side_effect = few_tokens
-
-    # Patch _assert_smoke_test to fail when called with < min_tokens list
-    original = __import__("model.convert_llm", fromlist=["_assert_smoke_test"])._assert_smoke_test
-
+    # Force _assert_smoke_test to raise SystemExit(1) immediately so we
+    # confirm that convert() propagates the failure.
+    compressed_mock.predict.side_effect = kv_predict
     from model.convert_llm import convert
-    with patch("model.convert_llm._assert_smoke_test",
-               side_effect=lambda tokens, **kw: (_ for _ in ()).throw(SystemExit(1))
-               if len(tokens) < _SMOKE_TEST_MIN_TOKENS else None):
-        # Limit predict calls so we get fewer tokens
-        compressed_mock.predict.side_effect = None
-        compressed_mock.predict.return_value = {
-            "logits": np.zeros((1, 1, vocab_size), dtype=np.float32)
-        }
-        # Force _assert_smoke_test to receive a short list by capping iterations
-        with patch("model.convert_llm._SMOKE_TEST_MIN_TOKENS", 20):
-            with patch("model.convert_llm._assert_smoke_test") as mock_assert:
-                mock_assert.side_effect = SystemExit(1)
-                with pytest.raises(SystemExit) as exc:
-                    convert(str(tmp_path), "1B", "fake-token")
-                assert exc.value.code == 1
+    with patch("model.convert_llm._assert_smoke_test") as mock_assert:
+        mock_assert.side_effect = SystemExit(1)
+        with pytest.raises(SystemExit) as exc:
+            convert(str(tmp_path), "1B", "fake-token")
+        assert exc.value.code == 1
