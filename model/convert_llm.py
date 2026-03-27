@@ -301,18 +301,20 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     # Patch F.scaled_dot_product_attention to enforce dtype consistency during trace.
     # The buffer recast above handles most cases, but residual fp32 paths can still appear
     # when the palettizer or attention implementation promotes tensors internally.
-    # The patch casts key/value to query's dtype so the traced graph is type-safe and
-    # coremltools accepts all SDPA ops without a "key dtype fp32 vs query dtype fp16" error.
+    # The patch unconditionally casts key/value to fp16 so that the cast ops are ALWAYS
+    # recorded in the torch.jit.trace graph.  torch.jit.trace only records the concrete
+    # execution path — a conditional cast (if key.dtype != dtype) is not recorded when the
+    # condition is False at trace time, leaving fp32 key nodes in the graph that coremltools
+    # rejects with "key dtype fp32 vs query dtype fp16".  An unconditional .to(torch.float16)
+    # is a no-op at runtime when the tensor is already fp16, but it IS written to the trace.
     _F = torch.nn.functional
     _orig_sdpa = _F.scaled_dot_product_attention
 
     def _dtype_safe_sdpa(query, key, value, attn_mask=None, dropout_p=0.0,
                          is_causal=False, scale=None, **kwargs):
-        dtype = query.dtype
-        if key.dtype != dtype:
-            key = key.to(dtype)
-        if value.dtype != dtype:
-            value = value.to(dtype)
+        key = key.to(torch.float16)
+        value = value.to(torch.float16)
+        query = query.to(torch.float16)
         return _orig_sdpa(query, key, value, attn_mask=attn_mask,
                           dropout_p=dropout_p, is_causal=is_causal, scale=scale)
 
