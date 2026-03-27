@@ -303,7 +303,7 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     # when the palettizer or attention implementation promotes tensors internally.
     # The patch casts key/value to query's dtype so the traced graph is type-safe and
     # coremltools accepts all SDPA ops without a "key dtype fp32 vs query dtype fp16" error.
-    import torch.nn.functional as _F
+    _F = torch.nn.functional
     _orig_sdpa = _F.scaled_dot_product_attention
 
     def _dtype_safe_sdpa(query, key, value, attn_mask=None, dropout_p=0.0,
