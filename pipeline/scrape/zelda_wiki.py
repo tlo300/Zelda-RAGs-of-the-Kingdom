@@ -27,6 +27,10 @@ TOTK_CATEGORIES = [
     "Shrine_Quests_in_Tears_of_the_Kingdom",
     "Mechanics_in_Tears_of_the_Kingdom",
     "Bosses_in_Tears_of_the_Kingdom",
+    # Additional categories not covered by Locations — dungeons, abilities, shrines
+    "Dungeons_in_Tears_of_the_Kingdom",
+    "Abilities_in_Tears_of_the_Kingdom",
+    "Shrines_of_Light",
 ]
 
 # Namespace prefixes to skip — user sandboxes, talk pages, etc.
