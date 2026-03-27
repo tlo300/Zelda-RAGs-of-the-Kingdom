@@ -298,32 +298,23 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
                                        dtype=torch_dtype)
     example_position_ids = torch.tensor([[TRACE_PAST_LEN]], dtype=torch.int64)
     example_inputs = (example_input_ids, example_attn_mask, example_past_kv, example_position_ids)
-    # Patch F.scaled_dot_product_attention to enforce dtype consistency during trace.
-    # The buffer recast above handles most cases, but residual fp32 paths can still appear
-    # when the palettizer or attention implementation promotes tensors internally.
-    # The patch unconditionally casts key/value to fp16 so that the cast ops are ALWAYS
-    # recorded in the torch.jit.trace graph.  torch.jit.trace only records the concrete
-    # execution path — a conditional cast (if key.dtype != dtype) is not recorded when the
-    # condition is False at trace time, leaving fp32 key nodes in the graph that coremltools
-    # rejects with "key dtype fp32 vs query dtype fp16".  An unconditional .to(torch.float16)
-    # is a no-op at runtime when the tensor is already fp16, but it IS written to the trace.
-    _F = torch.nn.functional
-    _orig_sdpa = _F.scaled_dot_product_attention
+    # Register forward hooks on every submodule to cast fp32 tensor outputs → fp16.
+    # This is more reliable than monkey-patching torch.nn.functional.scaled_dot_product_attention:
+    # torch.jit.trace dispatches SDPA through the C++ ATen kernel, bypassing Python-level patches.
+    # Forward hooks ARE invoked during tracing and their aten::to cast ops appear in the JIT graph,
+    # so coremltools sees fp16 key/value inputs at every attention layer.
+    def _cast_fp32_to_fp16(module, inp, out):
+        if isinstance(out, torch.Tensor) and out.dtype == torch.float32:
+            return out.to(torch.float16)
 
-    def _dtype_safe_sdpa(query, key, value, attn_mask=None, dropout_p=0.0,
-                         is_causal=False, scale=None, **kwargs):
-        key = key.to(torch.float16)
-        value = value.to(torch.float16)
-        query = query.to(torch.float16)
-        return _orig_sdpa(query, key, value, attn_mask=attn_mask,
-                          dropout_p=dropout_p, is_causal=is_causal, scale=scale)
-
-    _F.scaled_dot_product_attention = _dtype_safe_sdpa
+    _hooks = [m.register_forward_hook(_cast_fp32_to_fp16)
+              for m in compressed_wrapped.modules()]
     try:
         with torch.no_grad():
             traced = torch.jit.trace(compressed_wrapped, example_inputs)
     finally:
-        _F.scaled_dot_product_attention = _orig_sdpa
+        for h in _hooks:
+            h.remove()
     del compressed_wrapped
     gc.collect()
 
