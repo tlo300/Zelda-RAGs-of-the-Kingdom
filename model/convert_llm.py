@@ -200,7 +200,12 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
             print("WARNING: tokenizer.json not found after save_pretrained", file=sys.stderr)
 
     model = AutoModelForCausalLM.from_pretrained(
-        hf_id, token=hf_token, torch_dtype=torch_dtype
+        hf_id, token=hf_token, torch_dtype=torch_dtype,
+        attn_implementation="eager",  # avoid aten::scaled_dot_product_attention in the JIT graph;
+        # coremltools 8 validates that SDPA key/query/value share the same dtype and rejects
+        # the trace when palettized k/v projections produce fp32.  Eager attention uses plain
+        # matmul+softmax which has no same-dtype constraint; compute_precision=FLOAT16 in
+        # ct.convert handles any residual fp32 activations.
     )
     model.eval()
 
@@ -291,37 +296,15 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     # RangeDim in ct.convert makes all sequence dimensions dynamic at inference.
     # TRACE_PAST_LEN must be > 0 so the KV-cat operations are traced (not elided).
     TRACE_PAST_LEN = 8
-    print("Tracing compressed model with torch.jit.trace …")
     example_input_ids    = torch.zeros(1, 1, dtype=torch.int64)
     example_attn_mask    = torch.ones(1, TRACE_PAST_LEN + 1, dtype=torch.int64)
     example_past_kv      = torch.zeros(num_layers, 2, num_kv_heads, TRACE_PAST_LEN, head_dim,
                                        dtype=torch_dtype)
     example_position_ids = torch.tensor([[TRACE_PAST_LEN]], dtype=torch.int64)
     example_inputs = (example_input_ids, example_attn_mask, example_past_kv, example_position_ids)
-    # Register forward hooks on every submodule to cast fp32 tensor outputs → fp16.
-    # This is more reliable than monkey-patching torch.nn.functional.scaled_dot_product_attention:
-    # torch.jit.trace dispatches SDPA through the C++ ATen kernel, bypassing Python-level patches.
-    # Forward hooks ARE invoked during tracing and their aten::to cast ops appear in the JIT graph,
-    # so coremltools sees fp16 key/value inputs at every attention layer.
-    def _cast_fp32_to_fp16(module, inp, out):
-        if isinstance(out, torch.Tensor) and out.dtype == torch.float32:
-            return out.to(torch.float16)
-        if isinstance(out, tuple):
-            casted = tuple(
-                t.to(torch.float16) if isinstance(t, torch.Tensor) and t.dtype == torch.float32 else t
-                for t in out
-            )
-            if any(casted[i] is not out[i] for i in range(len(out))):
-                return casted
-
-    _hooks = [m.register_forward_hook(_cast_fp32_to_fp16)
-              for m in compressed_wrapped.modules()]
-    try:
-        with torch.no_grad():
-            traced = torch.jit.trace(compressed_wrapped, example_inputs)
-    finally:
-        for h in _hooks:
-            h.remove()
+    print("Tracing compressed model …")
+    with torch.no_grad():
+        traced = torch.jit.trace(compressed_wrapped, example_inputs)
     del compressed_wrapped
     gc.collect()
 
