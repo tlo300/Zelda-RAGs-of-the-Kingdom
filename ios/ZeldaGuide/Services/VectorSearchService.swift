@@ -4,7 +4,10 @@
 // text query is provided and vector search returns no results.
 
 import Foundation
+import os
 import SQLiteVec
+
+private let vsLog = Logger(subsystem: "com.tlo300.ZeldaGuide", category: "VectorSearch")
 
 enum VectorSearchError: Error, LocalizedError {
     case databaseNotFound(String)
@@ -50,11 +53,23 @@ actor VectorSearchService {
     }
 
     /// Returns the top-K chunks by cosine similarity. Falls back to FTS5 keyword search
-    /// when vector search returns no results.
+    /// when vector search returns no results OR when the best similarity score is below
+    /// `ModelConfig.minVectorSimilarity` (which indicates a broken or mismatched embedder).
     func search(queryText: String, queryEmbedding: [Float], topK: Int) async throws -> [KnowledgeChunk] {
         let results = try await vectorSearch(query: queryEmbedding, topK: topK)
-        if !results.isEmpty { return results }
-        return try await ftsSearch(queryText: queryText, topK: topK)
+        let bestSimilarity = results.map(\.similarityScore).max() ?? 0
+        vsLog.notice("Vector search: \(results.count, privacy: .public) results, best similarity \(bestSimilarity, privacy: .public)")
+        for (i, chunk) in results.enumerated() {
+            vsLog.debug("  [\(i + 1, privacy: .public)] \(chunk.similarityScore, privacy: .public) \(chunk.pageTitle, privacy: .public)")
+        }
+        if bestSimilarity >= ModelConfig.minVectorSimilarity { return results }
+        vsLog.notice("Best similarity \(bestSimilarity, privacy: .public) below threshold \(ModelConfig.minVectorSimilarity, privacy: .public) — falling back to FTS5")
+        let ftsResults = try await ftsSearch(queryText: queryText, topK: topK)
+        vsLog.notice("FTS5 fallback: \(ftsResults.count, privacy: .public) results")
+        for (i, chunk) in ftsResults.enumerated() {
+            vsLog.debug("  [\(i + 1, privacy: .public)] \(chunk.pageTitle, privacy: .public)")
+        }
+        return ftsResults
     }
 
     // MARK: - Private helpers
