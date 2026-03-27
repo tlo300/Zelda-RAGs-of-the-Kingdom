@@ -190,16 +190,18 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #103 fix OOM crash (logits slice) + im_start stop token (merged as #104)
+Last completed  : #106 extend zelda_wiki scraper + rebuild KB (3480 chunks, +978 vs previous)
 In progress     : nothing
 Blocked         : nothing
-Last session    : 2026-03-27 — fixed on-device OOM crash for long prompts; built new IPA r25
+Last session    : 2026-03-27 — extended scraper with dungeons/abilities/shrines categories; rebuilt KB
 
 Notes:
 - IPA ZeldaGuide-v1.0-1B-20260326-r25.ipa built from build-ipa run 23622115602
 - LLM model from convert-model run 23619223060 (logits sliced to last token — no longer OOM)
 - Model outputs [1, 1, vocab] instead of [1, seqLen, vocab]; peak logits memory ~600 KB vs. ~1 GB+
-- Shield question returns poor answer because KB lacks TotK-specific Hylian Shield acquisition info — data issue, not code
+- KB now has 3480 chunks (was 2502); includes all 153 shrines, Wind/Lightning Temple, sage abilities
+- Zelda Dungeon wiki is permanently Cloudflare-blocked (JS challenge) — not a viable source
+- Shield acquisition info IS in the KB (chunk in Hylian_Shield page); vector ranking may need tuning
 - Do NOT sideload old .ipa builds — use r25 or later
 
 ---
@@ -210,7 +212,7 @@ Notes:
 |-------|-------|-----------|--------|
 | #1    | Python pipeline scaffold and dev environment | 1 | merged |
 | #2    | Hyrule Compendium API scraper | 1 | merged |
-| #3    | Zelda Dungeon Wiki MediaWiki scraper | 1 | closed (403 blocked) |
+| #3    | Zelda Dungeon Wiki MediaWiki scraper | 1 | closed (Cloudflare JS challenge — unbypassable) |
 | #4    | Zelda Wiki MediaWiki scraper | 1 | merged |
 | #23   | Re-run cleaning and chunking pipeline (full dataset) | 1 | PR #26 |
 | #5    | Text cleaning and chunking pipeline | 1 | merged |
