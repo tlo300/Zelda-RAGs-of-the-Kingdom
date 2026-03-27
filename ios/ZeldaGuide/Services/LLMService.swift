@@ -71,7 +71,11 @@ struct CoreMLPredictor: LLMPredictor {
         let maskArr = try MLMultiArray(shape: [1, NSNumber(value: totalLen)], dataType: .int32)
         for i in 0..<totalLen { maskArr[i] = 1 }
 
-        // past_kv: [L, 2, H, pastLen, D] — empty on first call, accumulated thereafter
+        // past_kv: [L, 2, H, pastLen, D] — 1 dummy zero-token on first call, accumulated thereafter.
+        // A 1-token dummy (all zeros) is used instead of a 0-size array because the NE does not
+        // reliably handle zero-size dimensions.  The smoke test in convert_llm.py uses the same
+        // strategy ("avoids 0-dim arrays which the Python predictor may not handle").
+        // Position IDs for the real prompt start at 1, matching the smoke test's position_offset=1.
         let kvArr: MLMultiArray
         if let pastKV {
             kvArr = pastKV
@@ -81,7 +85,7 @@ struct CoreMLPredictor: LLMPredictor {
                     NSNumber(value: ModelConfig.llmNumLayers),
                     2,
                     NSNumber(value: ModelConfig.llmNumKVHeads),
-                    0,
+                    1,
                     NSNumber(value: ModelConfig.llmHeadDim),
                 ],
                 dataType: .float16
@@ -157,13 +161,13 @@ actor LLMService {
 
         do {
             let config = MLModelConfiguration()
-            // .all lets Core ML use the Neural Engine, which is required for grouped
-            // palettization (4-bit per_grouped_channel) — the NE is the only runtime
-            // that can decompress these weights.  .cpuAndGPU crashes with an uncatchable
-            // NSException on device because the palettized weight decompression op has
-            // no CPU/GPU fallback.  In the simulator there is no NE so Core ML falls
-            // back to CPU automatically.
-            config.computeUnits = .all
+            // The model was converted with CPU_AND_NE compute units so only CPU and NE
+            // kernels exist.  .cpuAndNeuralEngine matches that at runtime and lets the NE
+            // decompress the 4-bit per_grouped_channel palettized weights.  .cpuAndGPU
+            // crashes with an uncatchable NSException (no GPU fallback for palettization).
+            // .all can crash because Core ML may try to schedule GPU ops that don't exist
+            // in this model.  In the simulator (no NE) Core ML falls back to CPU automatically.
+            config.computeUnits = .cpuAndNeuralEngine
             let compiledURL = try await compileAndCache(modelURL)
             llmLog.notice("MLModel.load starting — this may take 30+ min in the simulator")
             let model = try await MLModel.load(contentsOf: compiledURL, configuration: config)
