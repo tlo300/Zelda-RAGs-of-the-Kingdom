@@ -298,8 +298,30 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
                                        dtype=torch_dtype)
     example_position_ids = torch.tensor([[TRACE_PAST_LEN]], dtype=torch.int64)
     example_inputs = (example_input_ids, example_attn_mask, example_past_kv, example_position_ids)
-    with torch.no_grad():
-        traced = torch.jit.trace(compressed_wrapped, example_inputs)
+    # Patch F.scaled_dot_product_attention to enforce dtype consistency during trace.
+    # The buffer recast above handles most cases, but residual fp32 paths can still appear
+    # when the palettizer or attention implementation promotes tensors internally.
+    # The patch casts key/value to query's dtype so the traced graph is type-safe and
+    # coremltools accepts all SDPA ops without a "key dtype fp32 vs query dtype fp16" error.
+    import torch.nn.functional as _F
+    _orig_sdpa = _F.scaled_dot_product_attention
+
+    def _dtype_safe_sdpa(query, key, value, attn_mask=None, dropout_p=0.0,
+                         is_causal=False, scale=None, **kwargs):
+        dtype = query.dtype
+        if key.dtype != dtype:
+            key = key.to(dtype)
+        if value.dtype != dtype:
+            value = value.to(dtype)
+        return _orig_sdpa(query, key, value, attn_mask=attn_mask,
+                          dropout_p=dropout_p, is_causal=is_causal, scale=scale)
+
+    _F.scaled_dot_product_attention = _dtype_safe_sdpa
+    try:
+        with torch.no_grad():
+            traced = torch.jit.trace(compressed_wrapped, example_inputs)
+    finally:
+        _F.scaled_dot_product_attention = _orig_sdpa
     del compressed_wrapped
     gc.collect()
 
