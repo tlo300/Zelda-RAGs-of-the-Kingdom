@@ -49,7 +49,7 @@ jobs:
     name: Build unsigned .ipa (AltStore / SideStore)
     runs-on: macos-15
     permissions:
-      contents: read
+      contents: write
       actions: read
     steps:
       - uses: actions/checkout@v4
@@ -125,7 +125,9 @@ jobs:
             | head -1 | sed 's/.*= //;s/;//')
           DATE=$(date -u +%Y%m%d)
           FILENAME="ZeldaGuide-v${VERSION}-${{ inputs.model_variant }}-${DATE}-r${{ github.run_number }}.ipa"
+          TAG="ZeldaGuide-v${VERSION}-${{ inputs.model_variant }}-${DATE}-r${{ github.run_number }}"
           echo "filename=$FILENAME" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
           cp "$RUNNER_TEMP/ZeldaGuide.ipa" "$RUNNER_TEMP/$FILENAME"
 
       - name: Get .ipa size
@@ -140,6 +142,25 @@ jobs:
           name: ${{ steps.versioned_name.outputs.filename }}
           path: ${{ runner.temp }}/${{ steps.versioned_name.outputs.filename }}
           retention-days: 30
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo 'Unsigned .ipa for AltStore / SideStore sideloading.'
+            echo ''
+            echo "Model: Qwen2.5 ${{ inputs.model_variant }}"
+            echo "convert-model run: ${{ inputs.llm_run_id }}"
+            echo "build-ipa run: #${{ github.run_number }}"
+            echo ''
+            echo 'Download on iPhone: open this release in Safari and tap the .ipa asset, then open with SideStore.'
+          } > /tmp/release_notes.md
+          gh release create "${{ steps.versioned_name.outputs.tag }}" \
+            "$RUNNER_TEMP/${{ steps.versioned_name.outputs.filename }}" \
+            --title "${{ steps.versioned_name.outputs.filename }}" \
+            --notes-file /tmp/release_notes.md \
+            --repo "${{ github.repository }}"
 
       - name: Upload to kDrive
         if: env.KDRIVE_USER != ''

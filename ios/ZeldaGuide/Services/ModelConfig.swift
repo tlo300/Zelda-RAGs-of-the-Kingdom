@@ -39,6 +39,13 @@ struct ModelConfig {
 
     /// Number of RAG chunks to retrieve.
     static var ragTopK: Int { 5 }
+
+    /// Minimum cosine similarity for vector search results to be used.
+    /// If the best result is below this threshold the pipeline falls back to FTS5 keyword search,
+    /// which handles cases where the on-device embedder produces mismatched vectors.
+    /// Similarity is derived from L2 distance d via: s = 1 − d²/2 (unit-vector identity).
+    static var minVectorSimilarity: Float { 0.3 }
+
     static var embeddingDimensions: Int { 384 }
     static var embeddingModelFilename: String { "MiniLMEmbedder.mlmodelc" }
     static var knowledgeBaseFilename: String { "knowledge_base.db" }
