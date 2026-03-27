@@ -161,13 +161,12 @@ actor LLMService {
 
         do {
             let config = MLModelConfiguration()
-            // The model was converted with CPU_AND_NE compute units so only CPU and NE
-            // kernels exist.  .cpuAndNeuralEngine matches that at runtime and lets the NE
-            // decompress the 4-bit per_grouped_channel palettized weights.  .cpuAndGPU
-            // crashes with an uncatchable NSException (no GPU fallback for palettization).
-            // .all can crash because Core ML may try to schedule GPU ops that don't exist
-            // in this model.  In the simulator (no NE) Core ML falls back to CPU automatically.
-            config.computeUnits = .cpuAndNeuralEngine
+            // .cpuOnly avoids the NE kernel compilation spike that OOM-kills the app during
+            // MLModel.load().  The NE compiler expands all palettized weights to generate
+            // device-specific kernels, temporarily doubling memory usage past the Jetsam
+            // limit.  CPU execution memory-maps the model file instead, keeping peak memory
+            // low.  Inference is slower but the app loads.  See: R27-R30 crash investigation.
+            config.computeUnits = .cpuOnly
             let compiledURL = try await compileAndCache(modelURL)
             llmLog.notice("MLModel.load starting — this may take 30+ min in the simulator")
             let model = try await MLModel.load(contentsOf: compiledURL, configuration: config)
