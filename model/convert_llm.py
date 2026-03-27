@@ -352,6 +352,9 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
         ],
         minimum_deployment_target=ct.target.iOS18,  # grouped palettization requires iOS 18+
         compute_units=ct.ComputeUnit.CPU_AND_NE,
+        compute_precision=ct.precision.FLOAT16,  # cast all activations to fp16 to prevent
+        # "key dtype fp32 vs query dtype fp16" at SDPA — the palettizer's dequantization path
+        # can leave fp32 activations in the JIT graph that coremltools' SDPA op rejects.
     )
     del traced
     gc.collect()
