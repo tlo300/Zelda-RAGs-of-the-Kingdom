@@ -190,19 +190,20 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #106 extend zelda_wiki scraper + rebuild KB (3480 chunks, +978 vs previous)
+Last completed  : #18 KV-cache generation + #107 GitHub Releases (both merged 2026-03-27)
 In progress     : nothing
 Blocked         : nothing
-Last session    : 2026-03-27 — extended scraper with dungeons/abilities/shrines categories; rebuilt KB
+Last session    : 2026-03-27 — KV-cache merged; GitHub Releases live; r28 is latest IPA
 
 Notes:
-- IPA ZeldaGuide-v1.0-1B-20260326-r25.ipa built from build-ipa run 23622115602
-- LLM model from convert-model run 23619223060 (logits sliced to last token — no longer OOM)
-- Model outputs [1, 1, vocab] instead of [1, seqLen, vocab]; peak logits memory ~600 KB vs. ~1 GB+
+- IPA ZeldaGuide-v1.0-1B-20260327-r28.ipa is Latest release (main, run 23653132929)
+- LLM model from convert-model run 23648511468 (attn_implementation=eager fixes SDPA dtype crash)
+- KV-cache decode path: ~200x speedup vs prefill-every-token; present_kv passed as stateless tensor
+- FTS5 fallback triggers on similarity < 0.3 (not only empty results); os.Logger debug logging added
+- GitHub Releases: .ipa downloadable directly from Safari on iPhone via releases/latest
 - KB now has 3480 chunks (was 2502); includes all 153 shrines, Wind/Lightning Temple, sage abilities
 - Zelda Dungeon wiki is permanently Cloudflare-blocked (JS challenge) — not a viable source
-- Shield acquisition info IS in the KB (chunk in Hylian_Shield page); vector ranking may need tuning
-- Do NOT sideload old .ipa builds — use r25 or later
+- Do NOT sideload old .ipa builds — use r28 or later
 
 ---
 
@@ -228,6 +229,7 @@ Notes:
 | #15   | Chat UI - question input and streaming answer | 3 | merged |
 | #16   | Source attribution view | 3 | merged |
 | #17   | AltStore sideload build and distribution docs | 4 | merged |
+| #107  | Publish .ipa as GitHub Release asset | 4 | merged |
 | #66   | Fix bundle real Core ML models in .ipa | 4 | merged |
 | #70   | Fix embedding input shape (1x40 vs 1x128) | 4 | merged |
 | #72   | Simulator CI + embedding shape unit tests | 4 | merged |
@@ -236,7 +238,7 @@ Notes:
 | #78   | Replace BundledTokenizer with real Qwen2.5 BPE tokenizer | 4 | merged |
 | #89   | Enhance debug-simulator for full RAG pipeline + bump 2048-context limits | 4 | merged |
 | #103  | Fix OOM crash (logits slice to last token) + im_start stop token | 4 | merged |
-| #18   | App performance tuning and model warm-up | 4 | backlog |
+| #18   | App performance tuning and model warm-up | 4 | merged |
 | #69   | Add in-app log viewer for on-device debugging | 4 | backlog |
 
 ---
