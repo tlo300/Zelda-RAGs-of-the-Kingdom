@@ -260,12 +260,15 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     # --- 4-bit torch-level palettization (pre-conversion) ---
     # Palettize the PyTorch model weights BEFORE CoreML conversion so we never
     # hold a large uncompressed CoreML model in memory (which OOMs the runner).
-    print("Applying 4-bit torch-level palettization …")
+    # per_channel (not per_grouped_channel) — simpler palette lookup that the NE
+    # can compile without the large kernel-generation memory spike that caused
+    # Jetsam OOM kills on device with per_grouped_channel (R27-R30).
+    # per_channel assigns one 4-bit palette per output channel; no group_size needed.
+    print("Applying 4-bit torch-level palettization (per_channel) …")
     pal_config = PostTrainingPalettizerConfig.from_dict({
         "global_config": {
             "n_bits": 4,
-            "granularity": "per_grouped_channel",
-            "group_size": 16,
+            "granularity": "per_channel",
         }
     })
     palettizer = PostTrainingPalettizer(wrapped, pal_config)
@@ -333,7 +336,7 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
             ct.TensorType(name="logits", dtype=np.float32),
             ct.TensorType(name="present_kv", dtype=np.float16),
         ],
-        minimum_deployment_target=ct.target.iOS18,  # grouped palettization requires iOS 18+
+        minimum_deployment_target=ct.target.iOS18,
         compute_units=ct.ComputeUnit.CPU_AND_NE,
         compute_precision=ct.precision.FLOAT16,  # cast all activations to fp16 to prevent
         # "key dtype fp32 vs query dtype fp16" at SDPA — the palettizer's dequantization path
