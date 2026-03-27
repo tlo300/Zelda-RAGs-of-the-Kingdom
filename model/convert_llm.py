@@ -306,6 +306,13 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     def _cast_fp32_to_fp16(module, inp, out):
         if isinstance(out, torch.Tensor) and out.dtype == torch.float32:
             return out.to(torch.float16)
+        if isinstance(out, tuple):
+            casted = tuple(
+                t.to(torch.float16) if isinstance(t, torch.Tensor) and t.dtype == torch.float32 else t
+                for t in out
+            )
+            if any(casted[i] is not out[i] for i in range(len(out))):
+                return casted
 
     _hooks = [m.register_forward_hook(_cast_fp32_to_fp16)
               for m in compressed_wrapped.modules()]
