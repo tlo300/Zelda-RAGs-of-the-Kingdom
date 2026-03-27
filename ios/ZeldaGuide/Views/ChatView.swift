@@ -18,6 +18,14 @@ struct ChatView: View {
             }
             .navigationTitle("Zelda TotK Guide")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if !viewModel.isReady {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        ProgressView()
+                            .tint(.green)
+                    }
+                }
+            }
         }
         .tint(.green)
     }

@@ -2,6 +2,7 @@
 // XCTest unit tests for LLMService.
 // Uses injected mock predictor and tokenizer so tests run without the real Core ML model.
 
+import CoreML
 import UIKit
 import XCTest
 @testable import ZeldaGuide
@@ -9,15 +10,17 @@ import XCTest
 // MARK: - Mock implementations
 
 /// Predictor that always returns logits where a fixed answer token wins.
+/// Returns a minimal dummy KV-cache (1×1×1×1×1 float16) so generation can proceed.
 struct MockPredictor: LLMPredictor {
     var answerToken: Int32 = 42
     var vocabSize: Int     = 256
 
-    func predict(inputIDs: [Int32]) async throws -> [Float] {
+    func predict(inputIDs: [Int32], pastKV: MLMultiArray?) async throws -> ([Float], MLMultiArray) {
         await Task.yield()  // Ensure the actor releases between steps for cancellation tests.
         var logits = [Float](repeating: -1.0, count: vocabSize)
         logits[Int(answerToken)] = 10.0
-        return logits
+        let dummyKV = try MLMultiArray(shape: [1, 1, 1, 1, 1], dataType: .float16)
+        return (logits, dummyKV)
     }
 }
 

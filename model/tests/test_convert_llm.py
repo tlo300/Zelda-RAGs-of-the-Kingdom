@@ -275,7 +275,10 @@ def _make_ct_mock():
 def _make_optimize_mock():
     # Build a predict side_effect that cycles through _SMOKE_TEST_MIN_TOKENS
     # distinct token IDs so the new degenerate-output check doesn't fire.
+    # Also returns "present_kv" so the KV-cache smoke-test loop can proceed.
     vocab_size = 32000
+    # Fake model config dimensions (matches _make_torch_mock cfg: 16 layers, 8 kv_heads, 64 head_dim)
+    _NUM_LAYERS, _NUM_KV_HEADS, _HEAD_DIM = 16, 8, 64
     call_counter = {"n": 0}
 
     def _cycling_predict(inputs):
@@ -283,7 +286,14 @@ def _make_optimize_mock():
         call_counter["n"] += 1
         logits = np.zeros((1, 1, vocab_size), dtype=np.float32)
         logits[0, 0, token_id] = 1.0
-        return {"logits": logits}
+        # Grow the KV cache by the number of new input tokens (default 1)
+        past_kv = inputs.get("past_kv", np.zeros((_NUM_LAYERS, 2, _NUM_KV_HEADS, 1, _HEAD_DIM),
+                                                  dtype=np.float16))
+        new_tokens = inputs.get("input_ids", np.zeros((1, 1), dtype=np.int32)).shape[1]
+        new_past_len = past_kv.shape[3] + new_tokens
+        present_kv = np.zeros((_NUM_LAYERS, 2, _NUM_KV_HEADS, new_past_len, _HEAD_DIM),
+                               dtype=np.float16)
+        return {"logits": logits, "present_kv": present_kv}
 
     # compressed_mock is returned by ct.convert() (torch-level palettization
     # means ct.convert() produces the final compressed model directly)

@@ -37,6 +37,13 @@ struct ModelConfig {
     /// if inputTokens.count reaches modelMaxSequenceLength first.
     static var maxOutputTokens: Int { 512 }
 
+    /// KV-cache dimensions — must match the converted model (set by convert_llm.py).
+    /// Qwen2.5-1.5B: 28 layers, 2 GQA KV heads, head_dim = hidden_size / num_attention_heads = 128.
+    /// These are used by CoreMLPredictor to allocate the initial empty KV-cache array.
+    static var llmNumLayers: Int { 28 }
+    static var llmNumKVHeads: Int { 2 }
+    static var llmHeadDim: Int { 128 }
+
     /// Number of RAG chunks to retrieve.
     static var ragTopK: Int { 5 }
     static var embeddingDimensions: Int { 384 }
