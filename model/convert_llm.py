@@ -280,8 +280,31 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
                                        dtype=torch_dtype)
     example_position_ids = torch.tensor([[TRACE_PAST_LEN]], dtype=torch.int64)
     example_inputs = (example_input_ids, example_attn_mask, example_past_kv, example_position_ids)
-    with torch.no_grad():
-        traced = torch.jit.trace(compressed_wrapped, example_inputs)
+    # Patch F.scaled_dot_product_attention to enforce dtype consistency during trace.
+    # After PostTrainingPalettisation, k/v projections dequantize weights to fp32
+    # while query stays fp16 (q_proj and k_proj dequantize differently).
+    # The concat [past_key fp16, new_key fp32] → fp32 key, causing coremltools to
+    # reject SDPA with "key has dtype fp32 whereas query has dtype fp16".
+    # The patch casts key/value to query's dtype so the traced graph is type-safe.
+    import torch.nn.functional as _F
+    _orig_sdpa = _F.scaled_dot_product_attention
+
+    def _dtype_safe_sdpa(query, key, value, attn_mask=None, dropout_p=0.0,
+                         is_causal=False, scale=None, **kwargs):
+        dtype = query.dtype
+        if key.dtype != dtype:
+            key = key.to(dtype)
+        if value.dtype != dtype:
+            value = value.to(dtype)
+        return _orig_sdpa(query, key, value, attn_mask=attn_mask,
+                          dropout_p=dropout_p, is_causal=is_causal, scale=scale)
+
+    _F.scaled_dot_product_attention = _dtype_safe_sdpa
+    try:
+        with torch.no_grad():
+            traced = torch.jit.trace(compressed_wrapped, example_inputs)
+    finally:
+        _F.scaled_dot_product_attention = _orig_sdpa
     del compressed_wrapped
     gc.collect()
 
