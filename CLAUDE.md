@@ -191,12 +191,13 @@ Create docs/decisions/NNN-short-title.md with:
 ## Current state
 Active milestone : 4 - Polish and distribution
 Last completed  : #115 add HyruleSage app — Llama 3.2 powered (merged 2026-03-28)
-In progress     : convert-model-llama run 23683351896 (triggered 2026-03-28, ~1hr job, currently at "Convert Llama 3.2 to Core ML" step)
+In progress     : nothing
 Blocked         : nothing
-Last session    : 2026-03-28 — convert-model-llama triggered for HyruleSage 1B; when complete trigger build-ipa-llama with llm_run_id=23683351896 model_variant=1B
+Last session    : 2026-03-28 — HyruleSage 1B IPA built and published to GitHub Release (build-ipa-llama run 23685117898); ready to sideload via SideStore
 
 Notes:
-- HyruleSage: first IPA not yet built — waiting on convert-model-llama run 23683351896
+- HyruleSage: first IPA published — download from GitHub Releases (releases/latest), sideload via SideStore
+- HyruleSage model artifacts: convert-model-llama run 23683351896 (LlamaModel-1B.mlpackage + tokenizer-llama.json)
 - ZeldaGuide (Qwen): R33 is the last IPA — does NOT have the context-overflow fix; do not test for generation with R33
 - ZeldaGuide: Need to trigger build-ipa CI to produce R34 (will have the 380-token context fix)
 - Fixed-size KV cache design (merged in #109):
