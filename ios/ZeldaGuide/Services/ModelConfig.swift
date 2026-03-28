@@ -28,9 +28,10 @@ struct ModelConfig {
     /// Must match MAX_KV_LEN in model/convert_llm.py — change both together via convert-model CI.
     static var llmMaxKVLen: Int { 512 }
 
-    /// Maximum tokens for the initial prompt (system + RAG context + user question).
-    /// Sized to leave headroom for the generated answer within modelMaxSequenceLength.
-    static var maxContextTokens: Int { 1500 }
+    /// Maximum tokens for the RAG context block (chunks only, excluding system prompt and question).
+    /// Must fit within llmMaxKVLen minus overhead (~80 tokens for system prompt + ChatML).
+    /// 380 tokens × 4 chars ÷ 5 chunks ≈ 304 chars per chunk.
+    static var maxContextTokens: Int { 380 }
 
     /// Generation-loop iteration cap. The context guard may stop generation earlier
     /// if inputTokens.count reaches modelMaxSequenceLength first.
