@@ -1,0 +1,104 @@
+# .github/workflows/build-ipa-walkthrough.yml
+# Builds an unsigned .ipa for ZeldaWalkthrough (chapter-based guide, no ML models).
+# Triggers manually via workflow_dispatch only.
+name: Build ZeldaWalkthrough .ipa
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ipa:
+    name: Build unsigned .ipa (AltStore / SideStore)
+    runs-on: macos-15
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Archive (unsigned)
+        run: |
+          xcodebuild archive \
+            -project ios/ZeldaWalkthrough/ZeldaWalkthrough.xcodeproj \
+            -scheme ZeldaWalkthrough \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/ZeldaWalkthrough.xcarchive" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package unsigned .ipa
+        run: |
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -r "$RUNNER_TEMP/ZeldaWalkthrough.xcarchive/Products/Applications/ZeldaWalkthrough.app" \
+                "$RUNNER_TEMP/Payload/ZeldaWalkthrough.app"
+          cd "$RUNNER_TEMP"
+          zip -r ZeldaWalkthrough.ipa Payload/
+
+      - name: Build versioned filename
+        id: versioned_name
+        run: |
+          VERSION=$(grep MARKETING_VERSION \
+            ios/ZeldaWalkthrough/ZeldaWalkthrough.xcodeproj/project.pbxproj \
+            | head -1 | sed 's/.*= //;s/;//')
+          DATE=$(date -u +%Y%m%d)
+          FILENAME="ZeldaWalkthrough-v${VERSION}-${DATE}-r${{ github.run_number }}.ipa"
+          TAG="ZeldaWalkthrough-v${VERSION}-${DATE}-r${{ github.run_number }}"
+          echo "filename=$FILENAME" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          cp "$RUNNER_TEMP/ZeldaWalkthrough.ipa" "$RUNNER_TEMP/$FILENAME"
+
+      - name: Get .ipa size
+        id: ipa_size
+        run: |
+          SIZE=$(du -sh "$RUNNER_TEMP/ZeldaWalkthrough.ipa" | cut -f1)
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
+
+      - name: Upload .ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.versioned_name.outputs.filename }}
+          path: ${{ runner.temp }}/${{ steps.versioned_name.outputs.filename }}
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo 'Unsigned .ipa for AltStore / SideStore sideloading.'
+            echo ''
+            echo 'ZeldaWalkthrough — chapter-based TotK guide (no ML models, no internet required).'
+            echo ''
+            echo "build-ipa-walkthrough run: #${{ github.run_number }}"
+            echo ''
+            echo 'Download on iPhone: open this release in Safari and tap the .ipa asset, then open with SideStore.'
+          } > /tmp/release_notes.md
+          gh release create "${{ steps.versioned_name.outputs.tag }}" \
+            "$RUNNER_TEMP/${{ steps.versioned_name.outputs.filename }}" \
+            --title "${{ steps.versioned_name.outputs.filename }}" \
+            --notes-file /tmp/release_notes.md \
+            --repo "${{ github.repository }}"
+
+      - name: Upload to kDrive
+        if: env.KDRIVE_USER != ''
+        env:
+          KDRIVE_USER: ${{ secrets.KDRIVE_USER }}
+          KDRIVE_PASS: ${{ secrets.KDRIVE_PASS }}
+          KDRIVE_FOLDER: ${{ secrets.KDRIVE_FOLDER }}
+        run: |
+          brew install rclone
+          OBSCURED=$(rclone obscure "$KDRIVE_PASS")
+          rclone copy "$RUNNER_TEMP/${{ steps.versioned_name.outputs.filename }}" \
+            ":webdav,url=https://connect.drive.infomaniak.com,vendor=nextcloud,user=$KDRIVE_USER,pass=$OBSCURED:$KDRIVE_FOLDER" \
+            --progress
+          echo "Uploaded ${{ steps.versioned_name.outputs.filename }} to kDrive $KDRIVE_FOLDER"
+
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## Build ZeldaWalkthrough .ipa Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Runner: macos-15" >> $GITHUB_STEP_SUMMARY
+          echo "- Artifact: ${{ steps.versioned_name.outputs.filename }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Size: ${{ steps.ipa_size.outputs.size }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Signing: unsigned (AltStore / SideStore)" >> $GITHUB_STEP_SUMMARY
