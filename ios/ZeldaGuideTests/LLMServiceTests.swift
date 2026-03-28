@@ -19,6 +19,8 @@ struct MockPredictor: LLMPredictor {
         logits[Int(answerToken)] = 10.0
         return logits
     }
+
+    func reset() {}
 }
 
 /// Tokenizer that splits on whitespace and maps token 42 → "sword".

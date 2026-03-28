@@ -190,20 +190,25 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #18 KV-cache generation + #107 GitHub Releases (both merged 2026-03-27)
-In progress     : nothing
+Last completed  : #107 GitHub Releases (merged 2026-03-27)
+In progress     : fix-ne-compute-units-and-kv-init — fixed-size KV cache (PR #109 needs description update)
 Blocked         : nothing
-Last session    : 2026-03-27 — KV-cache merged; GitHub Releases live; r28 is latest IPA
+Last session    : 2026-03-28 — R32 confirmed working; fixed-size KV cache implemented (needs convert-model CI run)
 
 Notes:
-- IPA ZeldaGuide-v1.0-1B-20260327-r28.ipa is Latest release (main, run 23653132929)
-- LLM model from convert-model run 23648511468 (attn_implementation=eager fixes SDPA dtype crash)
-- KV-cache decode path: ~200x speedup vs prefill-every-token; present_kv passed as stateless tensor
-- FTS5 fallback triggers on similarity < 0.3 (not only empty results); os.Logger debug logging added
+- R32 is LAST KNOWN GOOD — pre-KV-cache revert, stable but slow (~R25 speed)
+- Root cause of R26-R31 crash: RangeDim(0,2047) in past_kv caused Core ML to OOM compiling kernels at MLModel.load()
+- Fixed-size KV cache implemented on branch: all shapes static, no RangeDim
+  - convert_llm.py: past_kv [L,2,H,512,D] fixed; model returns new_kv [L,2,H,1,D] per token
+  - LLMService.swift: CoreMLPredictor holds circular buffer + write pointer; prefill token-by-token then decode
+  - ModelConfig.swift: llmMaxKVLen = 512 (must match MAX_KV_LEN in convert_llm.py)
+- Next step: trigger convert-model CI, then build-ipa — new model will be fast (one forward pass per token)
+- PR #109 description is stale (describes NE fix attempts) — update before merge
+- Do NOT sideload R26-R31 — all crash. R32 is safe but slow.
+- FTS5 fallback triggers on similarity < 0.3; os.Logger debug logging added
 - GitHub Releases: .ipa downloadable directly from Safari on iPhone via releases/latest
 - KB now has 3480 chunks (was 2502); includes all 153 shrines, Wind/Lightning Temple, sage abilities
 - Zelda Dungeon wiki is permanently Cloudflare-blocked (JS challenge) — not a viable source
-- Do NOT sideload old .ipa builds — use r28 or later
 
 ---
 
