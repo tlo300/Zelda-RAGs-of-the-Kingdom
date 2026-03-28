@@ -1,0 +1,118 @@
+# .github/workflows/build-ipa-search.yml
+# Builds an unsigned .ipa for ZeldaGuideSearch — the no-LLM semantic search variant.
+# ~150 MB (MiniLM embedder only, no Qwen model). Separate bundle ID: com.tlo300.ZeldaGuideSearch.
+# Triggers manually via workflow_dispatch only.
+name: Build iOS Search .ipa
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ipa-search:
+    name: Build unsigned ZeldaGuideSearch .ipa
+    runs-on: macos-15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: model/requirements.txt
+
+      - name: Install model conversion dependencies
+        run: pip install -r model/requirements.txt
+
+      - name: Convert embedding model (MiniLMEmbedder)
+        run: python model/convert_embeddings.py --output-dir model/
+
+      - name: Compile MiniLMEmbedder to .mlmodelc and inject into search project
+        run: |
+          xcrun coremlcompiler compile model/MiniLMEmbedder.mlpackage model/ \
+            --platform iOS --deployment-target 18.0
+          rm -rf ios/ZeldaGuideSearch/ZeldaGuideSearch/Resources/MiniLMEmbedder.mlmodelc
+          mv model/MiniLMEmbedder.mlmodelc ios/ZeldaGuideSearch/ZeldaGuideSearch/Resources/MiniLMEmbedder.mlmodelc
+
+      - name: Copy shared resources from main project
+        run: |
+          cp ios/ZeldaGuide/Resources/knowledge_base.db \
+             ios/ZeldaGuideSearch/ZeldaGuideSearch/Resources/knowledge_base.db
+          cp ios/ZeldaGuide/Resources/vocab.txt \
+             ios/ZeldaGuideSearch/ZeldaGuideSearch/Resources/vocab.txt
+
+      - name: Archive (unsigned)
+        run: |
+          xcodebuild archive \
+            -project ios/ZeldaGuideSearch/ZeldaGuideSearch.xcodeproj \
+            -scheme ZeldaGuideSearch \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/ZeldaGuideSearch.xcarchive" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package unsigned .ipa
+        run: |
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -r "$RUNNER_TEMP/ZeldaGuideSearch.xcarchive/Products/Applications/ZeldaGuideSearch.app" \
+                "$RUNNER_TEMP/Payload/ZeldaGuideSearch.app"
+          cd "$RUNNER_TEMP"
+          zip -r ZeldaGuideSearch.ipa Payload/
+
+      - name: Build versioned filename
+        id: versioned_name
+        run: |
+          DATE=$(date -u +%Y%m%d)
+          FILENAME="ZeldaGuideSearch-${DATE}-r${{ github.run_number }}.ipa"
+          TAG="ZeldaGuideSearch-${DATE}-r${{ github.run_number }}"
+          echo "filename=$FILENAME" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          cp "$RUNNER_TEMP/ZeldaGuideSearch.ipa" "$RUNNER_TEMP/$FILENAME"
+
+      - name: Get .ipa size
+        id: ipa_size
+        run: |
+          SIZE=$(du -sh "$RUNNER_TEMP/ZeldaGuideSearch.ipa" | cut -f1)
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
+
+      - name: Upload .ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.versioned_name.outputs.filename }}
+          path: ${{ runner.temp }}/${{ steps.versioned_name.outputs.filename }}
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo 'Unsigned .ipa for AltStore / SideStore sideloading.'
+            echo ''
+            echo 'ZeldaGuideSearch — offline semantic search for TotK.'
+            echo 'No LLM. Instant results. ~150 MB.'
+            echo "build-ipa-search run: #${{ github.run_number }}"
+            echo ''
+            echo 'Bundle ID: com.tlo300.ZeldaGuideSearch (installs alongside main app)'
+            echo ''
+            echo 'Download on iPhone: open this release in Safari and tap the .ipa asset, then open with SideStore.'
+          } > /tmp/release_notes.md
+          gh release create "${{ steps.versioned_name.outputs.tag }}" \
+            "$RUNNER_TEMP/${{ steps.versioned_name.outputs.filename }}" \
+            --title "${{ steps.versioned_name.outputs.tag }}" \
+            --notes-file /tmp/release_notes.md \
+            --repo "${{ github.repository }}"
+
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## Build ZeldaGuideSearch .ipa Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Runner: macos-15" >> $GITHUB_STEP_SUMMARY
+          echo "- Artifact: ${{ steps.versioned_name.outputs.filename }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Bundle ID: com.tlo300.ZeldaGuideSearch" >> $GITHUB_STEP_SUMMARY
+          echo "- Size: ${{ steps.ipa_size.outputs.size }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Signing: unsigned (AltStore / SideStore)" >> $GITHUB_STEP_SUMMARY
