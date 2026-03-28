@@ -267,9 +267,9 @@ actor RAGEngine {
             let charsPerChunk = (ModelConfig.maxContextTokens * 4) / max(chunks.count, 1)
             contextBlock = chunks.enumerated().map { index, chunk in
                 let text = String(chunk.chunkText.prefix(charsPerChunk))
-                return "[\(index + 1)] (source: \(chunk.source) | \(chunk.pageTitle))\n\(text)"
+                return "<<\(chunk.source) | \(chunk.pageTitle)>>\n\(text)"
             }.joined(separator: "\n\n")
         }
-        return "Context:\n\(contextBlock)\n\nQuestion: \(question)"
+        return "Context:\n\(contextBlock)\n\nQuestion: \(question)\nAnswer:"
     }
 }
