@@ -191,18 +191,19 @@ Create docs/decisions/NNN-short-title.md with:
 ## Current state
 Active milestone : 4 - Polish and distribution
 Last completed  : #107 GitHub Releases (merged 2026-03-27)
-In progress     : fix-ne-compute-units-and-kv-init — fixed-size KV cache (PR #109 needs description update)
+In progress     : fix-ne-compute-units-and-kv-init — fixed-size KV cache, tests green, convert-model in progress
 Blocked         : nothing
-Last session    : 2026-03-28 — R32 confirmed working; fixed-size KV cache implemented (needs convert-model CI run)
+Last session    : 2026-03-28 — fixed test mocks; iOS tests green (run 23673943524); convert-model triggered (run 23674038744)
 
 Notes:
 - R32 is LAST KNOWN GOOD — pre-KV-cache revert, stable but slow (~R25 speed)
 - Root cause of R26-R31 crash: RangeDim(0,2047) in past_kv caused Core ML to OOM compiling kernels at MLModel.load()
-- Fixed-size KV cache implemented on branch: all shapes static, no RangeDim
+- Fixed-size KV cache implemented (commit 757e3fe): all shapes static, no RangeDim
   - convert_llm.py: past_kv [L,2,H,512,D] fixed; model returns new_kv [L,2,H,1,D] per token
   - LLMService.swift: CoreMLPredictor holds circular buffer + write pointer; prefill token-by-token then decode
   - ModelConfig.swift: llmMaxKVLen = 512 (must match MAX_KV_LEN in convert_llm.py)
-- Next step: trigger convert-model CI, then build-ipa — new model will be fast (one forward pass per token)
+- iOS unit tests PASSING on 757e3fe (both test matrix jobs green)
+- convert-model run 23674038744 IN PROGRESS — if it succeeds, trigger build-ipa to produce the IPA
 - PR #109 description is stale (describes NE fix attempts) — update before merge
 - Do NOT sideload R26-R31 — all crash. R32 is safe but slow.
 - FTS5 fallback triggers on similarity < 0.3; os.Logger debug logging added
