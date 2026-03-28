@@ -56,14 +56,13 @@ final class SequencePredictor: LLMPredictor, @unchecked Sendable {
         self.eosToken = eosToken
     }
 
-    func predict(inputIDs: [Int32], pastKV: MLMultiArray?) async throws -> ([Float], MLMultiArray) {
+    func predict(inputIDs: [Int32]) async throws -> [Float] {
         await Task.yield()
         let token = step < sequence.count ? sequence[step] : eosToken
         step += 1
         var logits = [Float](repeating: -1.0, count: 256)
         logits[Int(token)] = 10.0
-        let dummyKV = try MLMultiArray(shape: [1, 1, 1, 1, 1], dataType: .float16)
-        return (logits, dummyKV)
+        return logits
     }
 }
 
