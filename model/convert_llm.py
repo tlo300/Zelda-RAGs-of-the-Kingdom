@@ -347,7 +347,13 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
             ct.TensorType(name="new_kv", dtype=np.float16),   # [L, 2, H, 1, D]
         ],
         minimum_deployment_target=ct.target.iOS18,
-        compute_units=ct.ComputeUnit.CPU_AND_NE,
+        # CPU_AND_GPU avoids the NE-specific kernel-compilation passes that caused the
+        # 6-hour CI timeout with CPU_AND_NE.  The 5D KV-cache tensors require extensive
+        # NE memory-tiling analysis that dominates compile time.  GPU still gives full
+        # KV-cache decode speed (O(1) per token vs O(n²) without cache) and avoids the
+        # Jetsam OOM that killed R26-R31 at MLModel.load().  NE can be re-enabled once
+        # conversion time is under control.
+        compute_units=ct.ComputeUnit.CPU_AND_GPU,
         compute_precision=ct.precision.FLOAT16,  # cast all activations to fp16 to prevent
         # "key dtype fp32 vs query dtype fp16" at SDPA — the palettizer's dequantization path
         # can leave fp32 activations in the JIT graph that coremltools' SDPA op rejects.

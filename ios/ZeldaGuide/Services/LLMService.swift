@@ -203,10 +203,11 @@ actor LLMService {
 
         do {
             let config = MLModelConfiguration()
-            // CPU_AND_NE matches the model's compilation target (ct.ComputeUnit.CPU_AND_NE
+            // cpuAndGPU matches the model's compilation target (ct.ComputeUnit.CPU_AND_GPU
             // in convert_llm.py). Fixed-shape KV cache means no RangeDim compilation spike,
             // so MLModel.load() no longer OOM-kills on device as it did in R26-R31.
-            config.computeUnits = .cpuAndNeuralEngine
+            // NE will be re-enabled once NE-specific conversion time is under control.
+            config.computeUnits = .cpuAndGPU
             let compiledURL = try await compileAndCache(modelURL)
             llmLog.notice("MLModel.load starting — this may take 30+ min in the simulator")
             let model = try await MLModel.load(contentsOf: compiledURL, configuration: config)
