@@ -278,11 +278,12 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     # --- 4-bit torch-level palettization (pre-conversion) ---
     # Palettize the PyTorch model weights BEFORE CoreML conversion so we never
     # hold a large uncompressed CoreML model in memory (which OOMs the runner).
-    print("Applying 4-bit torch-level palettization (per_grouped_channel) …")
+    print("Applying 4-bit torch-level palettization (per_grouped_channel, group_size=32) …")
     pal_config = PostTrainingPalettizerConfig.from_dict({
         "global_config": {
             "n_bits": 4,
             "granularity": "per_grouped_channel",
+            "group_size": 32,  # required by coremltools 8.0; 32 channels share one 16-entry LUT
         }
     })
     palettizer = PostTrainingPalettizer(wrapped, pal_config)
