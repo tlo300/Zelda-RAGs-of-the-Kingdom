@@ -25,11 +25,7 @@ struct ResultCardView: View {
                     .clipShape(Capsule())
             }
 
-            Text(chunk.chunkText)
-                .font(.body)
-                .lineLimit(isExpanded ? nil : 4)
-                .fixedSize(horizontal: false, vertical: true)
-                .textSelection(.enabled)
+            ParagraphText(text: chunk.chunkText, isExpanded: isExpanded)
 
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -60,5 +56,35 @@ struct ResultCardView: View {
         let s = chunk.source.lowercased()
         if s.contains("compendium") || s.contains("hyrule") { return .orange }
         return .blue
+    }
+}
+
+// Renders chunk text respecting paragraph breaks (\n\n).
+// Collapsed mode caps the first paragraph at 4 lines; expanded shows all paragraphs.
+private struct ParagraphText: View {
+    let text: String
+    let isExpanded: Bool
+
+    private var paragraphs: [String] {
+        text.components(separatedBy: "\n\n").filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if isExpanded {
+                ForEach(Array(paragraphs.enumerated()), id: \.offset) { _, para in
+                    Text(para)
+                        .font(.body)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                }
+            } else {
+                Text(paragraphs.first ?? text)
+                    .font(.body)
+                    .lineLimit(4)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+            }
+        }
     }
 }
