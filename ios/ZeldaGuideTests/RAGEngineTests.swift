@@ -3,7 +3,6 @@
 // All dependencies (embedder, vector search, LLM) are injected via mocks so tests
 // run without real Core ML models or a bundled knowledge_base.db.
 
-import CoreML
 import XCTest
 import SQLiteVec
 @testable import ZeldaGuide
@@ -64,6 +63,8 @@ final class SequencePredictor: LLMPredictor, @unchecked Sendable {
         logits[Int(token)] = 10.0
         return logits
     }
+
+    func reset() { step = 0 }
 }
 
 /// Maps specific token IDs to words; encode returns a single-token sequence.

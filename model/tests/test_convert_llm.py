@@ -286,14 +286,10 @@ def _make_optimize_mock():
         call_counter["n"] += 1
         logits = np.zeros((1, 1, vocab_size), dtype=np.float32)
         logits[0, 0, token_id] = 1.0
-        # Grow the KV cache by the number of new input tokens (default 1)
-        past_kv = inputs.get("past_kv", np.zeros((_NUM_LAYERS, 2, _NUM_KV_HEADS, 1, _HEAD_DIM),
-                                                  dtype=np.float16))
-        new_tokens = inputs.get("input_ids", np.zeros((1, 1), dtype=np.int32)).shape[1]
-        new_past_len = past_kv.shape[3] + new_tokens
-        present_kv = np.zeros((_NUM_LAYERS, 2, _NUM_KV_HEADS, new_past_len, _HEAD_DIM),
-                               dtype=np.float16)
-        return {"logits": logits, "present_kv": present_kv}
+        # Fixed-KV design: return new_kv [L, 2, H, 1, D] for this single token only.
+        # The caller (convert_llm.py smoke test) writes it into its own circular buffer.
+        new_kv = np.zeros((_NUM_LAYERS, 2, _NUM_KV_HEADS, 1, _HEAD_DIM), dtype=np.float16)
+        return {"logits": logits, "new_kv": new_kv}
 
     # compressed_mock is returned by ct.convert() (torch-level palettization
     # means ct.convert() produces the final compressed model directly)
@@ -410,16 +406,10 @@ def test_convert_exits_on_short_smoke_test(_patch_heavy):
     _NUM_LAYERS, _NUM_KV_HEADS, _HEAD_DIM = 16, 8, 64
 
     def kv_predict(inputs):
-        """Return logits + a present_kv that grows by the number of new input tokens."""
+        """Return logits + new_kv [L, 2, H, 1, D] for the fixed-KV interface."""
         logits = np.zeros((1, 1, vocab_size), dtype=np.float32)
-        past_kv = inputs.get("past_kv",
-                             np.zeros((_NUM_LAYERS, 2, _NUM_KV_HEADS, 1, _HEAD_DIM),
-                                      dtype=np.float16))
-        new_tokens = inputs.get("input_ids", np.zeros((1, 1), dtype=np.int32)).shape[1]
-        new_past_len = past_kv.shape[3] + new_tokens
-        present_kv = np.zeros((_NUM_LAYERS, 2, _NUM_KV_HEADS, new_past_len, _HEAD_DIM),
-                               dtype=np.float16)
-        return {"logits": logits, "present_kv": present_kv}
+        new_kv = np.zeros((_NUM_LAYERS, 2, _NUM_KV_HEADS, 1, _HEAD_DIM), dtype=np.float16)
+        return {"logits": logits, "new_kv": new_kv}
 
     # Force _assert_smoke_test to raise SystemExit(1) immediately so we
     # confirm that convert() propagates the failure.
