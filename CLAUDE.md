@@ -190,14 +190,15 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #111 fix RAG prompt overflow (merged 2026-03-28)
-In progress     : nothing
+Last completed  : #115 add HyruleSage app — Llama 3.2 powered (merged 2026-03-28)
+In progress     : convert-model-llama run 23683351896 (triggered 2026-03-28, ~1hr job, currently at "Convert Llama 3.2 to Core ML" step)
 Blocked         : nothing
-Last session    : 2026-03-28 — R33 tested on device; produced no output; root cause was RAG prompt (~1875 tokens) overflowing 512-token KV cache; fixed in #114 / #111; need new build-ipa run to get R34
+Last session    : 2026-03-28 — convert-model-llama triggered for HyruleSage 1B; when complete trigger build-ipa-llama with llm_run_id=23683351896 model_variant=1B
 
 Notes:
-- R33 is the last IPA — does NOT have the context-overflow fix; do not test for generation with R33
-- Need to trigger build-ipa CI to produce R34 (will have the 380-token context fix)
+- HyruleSage: first IPA not yet built — waiting on convert-model-llama run 23683351896
+- ZeldaGuide (Qwen): R33 is the last IPA — does NOT have the context-overflow fix; do not test for generation with R33
+- ZeldaGuide: Need to trigger build-ipa CI to produce R34 (will have the 380-token context fix)
 - Fixed-size KV cache design (merged in #109):
   - convert_llm.py: past_kv [L,2,H,512,D] fixed; new_kv [L,2,H,1,D] per token; CPU_AND_GPU compile
   - LLMService.swift: CoreMLPredictor circular buffer + write pointer; .cpuAndGPU load
@@ -247,6 +248,7 @@ Notes:
 | #103  | Fix OOM crash (logits slice to last token) + im_start stop token | 4 | merged |
 | #18   | App performance tuning and model warm-up | 4 | merged |
 | #111  | Fix RAG prompt overflow (no answer generated) | 4 | merged |
+| #115  | Add HyruleSage app — Llama 3.2 powered Zelda TotK guide | 4 | merged |
 | #69   | Add in-app log viewer for on-device debugging | 4 | backlog |
 
 ---
