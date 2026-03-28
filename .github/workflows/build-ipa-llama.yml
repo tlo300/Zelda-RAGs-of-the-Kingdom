@@ -1,0 +1,174 @@
+# .github/workflows/build-ipa-llama.yml
+# Builds an unsigned HyruleSage .ipa (Llama 3.2 powered) for AltStore / SideStore.
+# Triggers manually via workflow_dispatch only.
+#
+# HyruleSage installs alongside ZeldaGuide — bundle ID com.tlo300.HyruleSage is distinct.
+name: Build HyruleSage .ipa (Llama)
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_variant:
+        description: 'Model variant bundled in the .ipa (1B or 3B)'
+        required: true
+        default: '1B'
+        type: choice
+        options: ['1B', '3B']
+      llm_run_id:
+        description: 'Run ID of convert-model-llama.yml that produced the LlamaModel artifact'
+        required: true
+        type: string
+      tokenizer_run_id:
+        description: 'Run ID that produced the tokenizer-llama.json artifact (leave blank to use llm_run_id)'
+        required: false
+        type: string
+
+jobs:
+  build-ipa:
+    name: Build unsigned HyruleSage .ipa (AltStore / SideStore)
+    runs-on: macos-15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: model/requirements.txt
+
+      - name: Install model conversion dependencies
+        run: pip install -r model/requirements.txt
+
+      - name: Convert embedding model (MiniLMEmbedder)
+        run: python model/convert_embeddings.py --output-dir model/
+
+      - name: Compile MiniLMEmbedder to .mlmodelc and inject into HyruleSage Resources
+        run: |
+          xcrun coremlcompiler compile model/MiniLMEmbedder.mlpackage model/ \
+            --platform iOS --deployment-target 18.0
+          rm -rf ios/HyruleSage/Resources/MiniLMEmbedder.mlmodelc
+          mv model/MiniLMEmbedder.mlmodelc ios/HyruleSage/Resources/MiniLMEmbedder.mlmodelc
+
+      - name: Download LlamaModel artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: LlamaModel-${{ inputs.model_variant }}.mlpackage
+          path: ios/HyruleSage/Resources/LlamaModel-${{ inputs.model_variant }}.mlpackage
+          run-id: ${{ inputs.llm_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compile LlamaModel to .mlmodelc
+        run: |
+          VARIANT="${{ inputs.model_variant }}"
+          xcrun coremlcompiler compile \
+            "ios/HyruleSage/Resources/LlamaModel-${VARIANT}.mlpackage" \
+            "ios/HyruleSage/Resources/" \
+            --platform iOS --deployment-target 18.0
+          rm -rf "ios/HyruleSage/Resources/LlamaModel-${VARIANT}.mlpackage"
+
+      - name: Download tokenizer.json artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tokenizer-llama.json
+          path: ios/HyruleSage/Resources
+          run-id: ${{ inputs.tokenizer_run_id != '' && inputs.tokenizer_run_id || inputs.llm_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Copy shared resources from ZeldaGuide pipeline output
+        run: |
+          # knowledge_base.db and vocab.txt are shared between ZeldaGuide and HyruleSage
+          cp ios/ZeldaGuide/Resources/knowledge_base.db ios/HyruleSage/Resources/knowledge_base.db
+          cp ios/ZeldaGuide/Resources/vocab.txt ios/HyruleSage/Resources/vocab.txt
+
+      - name: Archive (unsigned)
+        run: |
+          xcodebuild archive \
+            -project ios/HyruleSage.xcodeproj \
+            -scheme HyruleSage \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/HyruleSage.xcarchive" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package unsigned .ipa
+        run: |
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -r "$RUNNER_TEMP/HyruleSage.xcarchive/Products/Applications/HyruleSage.app" \
+                "$RUNNER_TEMP/Payload/HyruleSage.app"
+          cd "$RUNNER_TEMP"
+          zip -r HyruleSage.ipa Payload/
+
+      - name: Build versioned filename
+        id: versioned_name
+        run: |
+          VERSION=$(grep MARKETING_VERSION ios/HyruleSage.xcodeproj/project.pbxproj \
+            | head -1 | sed 's/.*= //;s/;//')
+          DATE=$(date -u +%Y%m%d)
+          FILENAME="HyruleSage-v${VERSION}-${{ inputs.model_variant }}-${DATE}-r${{ github.run_number }}.ipa"
+          TAG="HyruleSage-v${VERSION}-${{ inputs.model_variant }}-${DATE}-r${{ github.run_number }}"
+          echo "filename=$FILENAME" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          cp "$RUNNER_TEMP/HyruleSage.ipa" "$RUNNER_TEMP/$FILENAME"
+
+      - name: Get .ipa size
+        id: ipa_size
+        run: |
+          SIZE=$(du -sh "$RUNNER_TEMP/HyruleSage.ipa" | cut -f1)
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
+
+      - name: Upload .ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.versioned_name.outputs.filename }}
+          path: ${{ runner.temp }}/${{ steps.versioned_name.outputs.filename }}
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo 'Unsigned .ipa for AltStore / SideStore sideloading.'
+            echo ''
+            echo "Model: Llama 3.2 ${{ inputs.model_variant }}"
+            echo "convert-model-llama run: ${{ inputs.llm_run_id }}"
+            echo "build-ipa-llama run: #${{ github.run_number }}"
+            echo ''
+            echo 'Download on iPhone: open this release in Safari and tap the .ipa asset, then open with SideStore.'
+            echo 'Installs alongside ZeldaGuide (different bundle ID: com.tlo300.HyruleSage).'
+          } > /tmp/release_notes.md
+          gh release create "${{ steps.versioned_name.outputs.tag }}" \
+            "$RUNNER_TEMP/${{ steps.versioned_name.outputs.filename }}" \
+            --title "${{ steps.versioned_name.outputs.filename }}" \
+            --notes-file /tmp/release_notes.md \
+            --repo "${{ github.repository }}"
+
+      - name: Upload to kDrive
+        if: env.KDRIVE_USER != ''
+        env:
+          KDRIVE_USER: ${{ secrets.KDRIVE_USER }}
+          KDRIVE_PASS: ${{ secrets.KDRIVE_PASS }}
+          KDRIVE_FOLDER: ${{ secrets.KDRIVE_FOLDER }}
+        run: |
+          brew install rclone
+          OBSCURED=$(rclone obscure "$KDRIVE_PASS")
+          rclone copy "$RUNNER_TEMP/${{ steps.versioned_name.outputs.filename }}" \
+            ":webdav,url=https://connect.drive.infomaniak.com,vendor=nextcloud,user=$KDRIVE_USER,pass=$OBSCURED:$KDRIVE_FOLDER" \
+            --progress
+          echo "Uploaded ${{ steps.versioned_name.outputs.filename }} to kDrive $KDRIVE_FOLDER"
+
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## Build HyruleSage .ipa Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Runner: macos-15" >> $GITHUB_STEP_SUMMARY
+          echo "- Artifact: ${{ steps.versioned_name.outputs.filename }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Model variant: Llama 3.2 ${{ inputs.model_variant }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Size: ${{ steps.ipa_size.outputs.size }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Bundle ID: com.tlo300.HyruleSage" >> $GITHUB_STEP_SUMMARY
+          echo "- Signing: unsigned (AltStore / SideStore)" >> $GITHUB_STEP_SUMMARY
