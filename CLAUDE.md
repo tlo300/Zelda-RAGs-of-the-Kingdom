@@ -190,20 +190,29 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #18 KV-cache generation + #107 GitHub Releases (both merged 2026-03-27)
-In progress     : nothing
+Last completed  : #107 GitHub Releases (merged 2026-03-27)
+In progress     : fix-ne-compute-units-and-kv-init — R33 built, needs device test before merge
 Blocked         : nothing
-Last session    : 2026-03-27 — KV-cache merged; GitHub Releases live; r28 is latest IPA
+Last session    : 2026-03-28 — R33 IPA built successfully (build run 23681617435, 728 MB)
 
 Notes:
-- IPA ZeldaGuide-v1.0-1B-20260327-r28.ipa is Latest release (main, run 23653132929)
-- LLM model from convert-model run 23648511468 (attn_implementation=eager fixes SDPA dtype crash)
-- KV-cache decode path: ~200x speedup vs prefill-every-token; present_kv passed as stateless tensor
-- FTS5 fallback triggers on similarity < 0.3 (not only empty results); os.Logger debug logging added
+- R33 is the CANDIDATE IPA — fixed-size KV cache, GPU inference, 728 MB, artifact on run 23681617435
+  - Sideload R33 and confirm: (a) MLModel.load() completes without crash, (b) generation produces text
+  - If R33 works on device → update PR #109 description and merge to main
+- R32 is last known good (no KV cache, slow but stable)
+- Fixed-size KV cache design (commit 47b888c):
+  - convert_llm.py: past_kv [L,2,H,512,D] fixed; new_kv [L,2,H,1,D] per token; CPU_AND_GPU compile
+  - LLMService.swift: CoreMLPredictor circular buffer + write pointer; .cpuAndGPU load
+  - ModelConfig.swift: llmMaxKVLen = 512
+  - Palettization: per_grouped_channel with group_size=32 (required by fresh coremltools 8.0 install)
+  - ct.convert() with CPU_AND_GPU completed in ~1.5h (CPU_AND_NE hit 6h GitHub limit)
+  - NE support: can revisit once we have a working GPU baseline
+- PR #109 description is stale (describes NE fix attempts) — rewrite before merge
+- Do NOT sideload R26-R31 — all crash. R32 safe but slow.
+- FTS5 fallback triggers on similarity < 0.3; os.Logger debug logging added
 - GitHub Releases: .ipa downloadable directly from Safari on iPhone via releases/latest
 - KB now has 3480 chunks (was 2502); includes all 153 shrines, Wind/Lightning Temple, sage abilities
 - Zelda Dungeon wiki is permanently Cloudflare-blocked (JS challenge) — not a viable source
-- Do NOT sideload old .ipa builds — use r28 or later
 
 ---
 

@@ -4,10 +4,13 @@ Converts Qwen2.5 1.5B or 3B Instruct from HuggingFace to a Core ML .mlpackage
 with 4-bit palettization quantization, for on-device inference on iOS.
 
 Output: model/QwenModel-1B.mlpackage  or  model/QwenModel-3B.mlpackage
-  - KV-cache model: takes (input_ids, attention_mask, past_kv, position_ids) and
-    returns (logits [1,1,vocab], present_kv [L,2,H,total_len,D])
-  - Prefill: pass full prompt with empty past_kv; decode: pass 1 token per step
-  - 4-bit uniform palettization via coremltools.optimize.torch
+  - Fixed-KV model: takes (input_ids [1,1], attention_mask [1,MAX_KV_LEN+1],
+    past_kv [L,2,H,MAX_KV_LEN,D], position_ids [1,1]) and returns
+    (logits [1,1,vocab], new_kv [L,2,H,1,D])
+  - All input/output shapes are FIXED (no RangeDim) to avoid Core ML OOM at load time.
+  - Caller maintains a circular KV buffer of size MAX_KV_LEN and writes new_kv at
+    write_pos % MAX_KV_LEN after each step.
+  - 4-bit per_grouped_channel palettization via coremltools.optimize.torch
   - 1B output must be under 800 MB; 3B under 2 GB
 
 Environment variables:
@@ -51,6 +54,12 @@ _SIZE_LIMITS = {
 }
 
 _SMOKE_TEST_MIN_TOKENS = 20
+
+# Fixed KV cache length — must match ModelConfig.llmMaxKVLen in the iOS app.
+# All Core ML tensor shapes are static (no RangeDim), which prevents the
+# Jetsam OOM kill that occurred during MLModel.load() with the previous
+# RangeDim-based design (R26-R31).
+MAX_KV_LEN = 512
 
 
 # ---------------------------------------------------------------------------
@@ -209,21 +218,26 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     )
     model.eval()
 
-    # KV-cache wrapper: returns (logits [1,1,vocab], present_kv [L,2,H,total,D]).
-    # Accepts explicit position_ids so RoPE positions are correct at every decode step
-    # regardless of what transformers infers from the KV-cache length constant in the trace.
-    # past_kv layout: [num_layers, 2, num_kv_heads, past_len, head_dim]
-    #   dim-1 index 0 = keys, index 1 = values
-    # The batch dimension (1) is squeezed/unsqueezed at the boundary so the traced
-    # graph stays batch-size-1 throughout.
-    class _KVCachedWrapper(torch.nn.Module):
+    # Fixed-KV wrapper: processes one token per call.
+    # Inputs:
+    #   input_ids      [1, 1]                    — single new token
+    #   attention_mask [1, MAX_KV_LEN+1]         — 1 for valid past slots + current token
+    #   past_kv        [L, 2, H, MAX_KV_LEN, D]  — circular KV buffer (fixed size, no RangeDim)
+    #   position_ids   [1, 1]                    — absolute position of the new token
+    # Outputs:
+    #   logits  [1, 1, vocab]   — logits for the new token
+    #   new_kv  [L, 2, H, 1, D] — KV for the new token only (caller writes into buffer)
+    #
+    # All shapes are fixed — Core ML never needs to compile for a range of sizes,
+    # which eliminates the Jetsam OOM that killed R26-R31 during MLModel.load().
+    class _FixedKVWrapper(torch.nn.Module):
         def __init__(self, m, num_layers):
             super().__init__()
             self.m = m
             self.num_layers = num_layers
 
         def forward(self, input_ids, attention_mask, past_kv, position_ids):
-            # past_kv: [L, 2, H, past_len, D] — unsqueeze batch dim for HF attention
+            # past_kv: [L, 2, H, MAX_KV_LEN, D] — unsqueeze batch dim for HF attention
             past_key_values = tuple(
                 (past_kv[i, 0].unsqueeze(0), past_kv[i, 1].unsqueeze(0))
                 for i in range(self.num_layers)
@@ -236,36 +250,40 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
                 use_cache=True,
             )
             logits = out.logits[:, -1:, :]  # [1, 1, vocab]
-            # present_kv: [L, 2, H, total_len, D] — squeeze batch dim back out
-            present_kv = torch.stack([
-                torch.stack([kv[0].squeeze(0), kv[1].squeeze(0)], dim=0)
+            # Extract only the new token's KV from the concatenated past+new output.
+            # out.past_key_values[i][0] shape: [1, H, MAX_KV_LEN+1, D]
+            # [:, :, -1:, :] gives [1, H, 1, D] — just the new token.
+            new_kv = torch.stack([
+                torch.stack([
+                    kv[0].squeeze(0)[:, -1:, :],  # [H, 1, D]
+                    kv[1].squeeze(0)[:, -1:, :]   # [H, 1, D]
+                ], dim=0)
                 for kv in out.past_key_values
-            ], dim=0)
-            return logits, present_kv
+            ], dim=0)  # [L, 2, H, 1, D] — fixed shape
+            return logits, new_kv
 
     cfg = model.config
     num_layers = cfg.num_hidden_layers
     num_kv_heads = cfg.num_key_value_heads
     head_dim = cfg.hidden_size // cfg.num_attention_heads
-    max_seq = cfg.max_position_embeddings
 
     print(
         f"Model config: {num_layers} layers, "
-        f"{num_kv_heads} KV heads, head_dim={head_dim}, max_seq={max_seq}"
+        f"{num_kv_heads} KV heads, head_dim={head_dim}, MAX_KV_LEN={MAX_KV_LEN}"
     )
 
-    wrapped = _KVCachedWrapper(model, num_layers)
+    wrapped = _FixedKVWrapper(model, num_layers)
     wrapped.eval()
 
     # --- 4-bit torch-level palettization (pre-conversion) ---
     # Palettize the PyTorch model weights BEFORE CoreML conversion so we never
     # hold a large uncompressed CoreML model in memory (which OOMs the runner).
-    print("Applying 4-bit torch-level palettization …")
+    print("Applying 4-bit torch-level palettization (per_grouped_channel, group_size=32) …")
     pal_config = PostTrainingPalettizerConfig.from_dict({
         "global_config": {
             "n_bits": 4,
             "granularity": "per_grouped_channel",
-            "group_size": 16,
+            "group_size": 32,  # required by coremltools 8.0; 32 channels share one 16-entry LUT
         }
     })
     palettizer = PostTrainingPalettizer(wrapped, pal_config)
@@ -292,15 +310,13 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     gc.collect()
 
     # --- Trace the already-compressed model ---
-    # Use decode-representative example: 1 new token, 8-token past KV cache.
-    # RangeDim in ct.convert makes all sequence dimensions dynamic at inference.
-    # TRACE_PAST_LEN must be > 0 so the KV-cat operations are traced (not elided).
-    TRACE_PAST_LEN = 8
+    # Trace with fixed sizes that match the ct.convert shape declarations below.
+    # past_kv is always MAX_KV_LEN — no growing tensors, no RangeDim needed.
     example_input_ids    = torch.zeros(1, 1, dtype=torch.int64)
-    example_attn_mask    = torch.ones(1, TRACE_PAST_LEN + 1, dtype=torch.int64)
-    example_past_kv      = torch.zeros(num_layers, 2, num_kv_heads, TRACE_PAST_LEN, head_dim,
+    example_attn_mask    = torch.ones(1, MAX_KV_LEN + 1, dtype=torch.int64)
+    example_past_kv      = torch.zeros(num_layers, 2, num_kv_heads, MAX_KV_LEN, head_dim,
                                        dtype=torch_dtype)
-    example_position_ids = torch.tensor([[TRACE_PAST_LEN]], dtype=torch.int64)
+    example_position_ids = torch.tensor([[MAX_KV_LEN]], dtype=torch.int64)
     example_inputs = (example_input_ids, example_attn_mask, example_past_kv, example_position_ids)
     print("Tracing compressed model …")
     with torch.no_grad():
@@ -309,32 +325,36 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     gc.collect()
 
     # --- Core ML conversion ---
-    # Cap dynamic sequence at 2048 tokens (system + RAG context + question + answer).
-    # past_kv past_len lower bound is 0 so the iOS prefill call (empty cache) is valid.
-    # coremltools recognises the torch-level palettization and produces a
-    # compressed mlpackage directly — no post-conversion quantization needed.
-    max_context = 2048
+    # All shapes are fixed — no RangeDim anywhere.
+    # This is the key change from the previous design: Core ML compiles for exactly
+    # these shapes at MLModel.load() time, which takes trivial memory vs. the previous
+    # approach that compiled for every length in RangeDim(0, 2047) and OOM-killed the process.
     print("Converting to Core ML …")
     compressed = ct.convert(
         traced,
         inputs=[
             ct.TensorType(name="input_ids",
-                          shape=(1, ct.RangeDim(1, max_context)), dtype=np.int32),
+                          shape=(1, 1), dtype=np.int32),
             ct.TensorType(name="attention_mask",
-                          shape=(1, ct.RangeDim(1, max_context)), dtype=np.int32),
+                          shape=(1, MAX_KV_LEN + 1), dtype=np.int32),
             ct.TensorType(name="past_kv",
-                          shape=(num_layers, 2, num_kv_heads,
-                                 ct.RangeDim(0, max_context - 1), head_dim),
+                          shape=(num_layers, 2, num_kv_heads, MAX_KV_LEN, head_dim),
                           dtype=np.float16),
             ct.TensorType(name="position_ids",
-                          shape=(1, ct.RangeDim(1, max_context)), dtype=np.int32),
+                          shape=(1, 1), dtype=np.int32),
         ],
         outputs=[
             ct.TensorType(name="logits", dtype=np.float32),
-            ct.TensorType(name="present_kv", dtype=np.float16),
+            ct.TensorType(name="new_kv", dtype=np.float16),   # [L, 2, H, 1, D]
         ],
-        minimum_deployment_target=ct.target.iOS18,  # grouped palettization requires iOS 18+
-        compute_units=ct.ComputeUnit.CPU_AND_NE,
+        minimum_deployment_target=ct.target.iOS18,
+        # CPU_AND_GPU avoids the NE-specific kernel-compilation passes that caused the
+        # 6-hour CI timeout with CPU_AND_NE.  The 5D KV-cache tensors require extensive
+        # NE memory-tiling analysis that dominates compile time.  GPU still gives full
+        # KV-cache decode speed (O(1) per token vs O(n²) without cache) and avoids the
+        # Jetsam OOM that killed R26-R31 at MLModel.load().  NE can be re-enabled once
+        # conversion time is under control.
+        compute_units=ct.ComputeUnit.CPU_AND_GPU,
         compute_precision=ct.precision.FLOAT16,  # cast all activations to fp16 to prevent
         # "key dtype fp32 vs query dtype fp16" at SDPA — the palettizer's dequantization path
         # can leave fp32 activations in the JIT graph that coremltools' SDPA op rejects.
@@ -351,8 +371,8 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
     _assert_size(save_path, variant)
 
     # --- Smoke test: generate _SMOKE_TEST_MIN_TOKENS tokens ---
-    # Uses the KV-cache interface: prefill the prompt once, then decode one token at a time.
-    # Initialises past_kv with one dummy token (avoids 0-dim arrays in the Python predictor).
+    # Uses the fixed-KV interface: maintain a circular buffer and write pointer.
+    # Prefill and decode are both one token per forward pass.
     print(f"Running smoke test ({_SMOKE_TEST_MIN_TOKENS} tokens) …")
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -362,44 +382,50 @@ def convert(output_dir: str, variant: str, hf_token: str) -> None:
         messages, tokenize=False, add_generation_prompt=True
     )
     enc = tokenizer(input_text, return_tensors="pt")
-    prompt_ids  = enc["input_ids"].numpy().astype(np.int32)   # [1, prompt_len]
-    prompt_len  = prompt_ids.shape[1]
+    prompt_ids = enc["input_ids"].numpy().astype(np.int32)  # [1, prompt_len]
+    prompt_len = prompt_ids.shape[1]
 
-    # Seed KV cache with one dummy token at position 0 so past_len=1 on the first
-    # real call. This avoids creating a 0-dim array which the Python predictor
-    # may not handle. Position IDs for the real prompt start at 1.
-    past_kv = np.zeros((num_layers, 2, num_kv_heads, 1, head_dim), dtype=np.float16)
-    position_offset = 1  # first real token is at position 1
+    # Circular KV buffer — all zeros initially.
+    kv_buffer = np.zeros((num_layers, 2, num_kv_heads, MAX_KV_LEN, head_dim), dtype=np.float16)
+    write_pos = 0
 
-    # Process prompt token-by-token to populate the KV cache before decoding.
+    def _make_mask(pos: int) -> np.ndarray:
+        """Build attention_mask [1, MAX_KV_LEN+1]: 1 for valid past slots + current token."""
+        mask = np.zeros((1, MAX_KV_LEN + 1), dtype=np.int32)
+        valid = min(pos, MAX_KV_LEN)
+        mask[0, :valid] = 1
+        mask[0, MAX_KV_LEN] = 1  # current token always attended
+        return mask
+
+    # Prefill: process prompt token by token to populate the KV cache.
     next_token = None
     for step in range(prompt_len):
-        curr_pos  = position_offset + step
-        past_len  = past_kv.shape[3]
-        total_len = past_len + 1
-        token_id  = prompt_ids[0, step]
+        token_id = prompt_ids[0, step]
         output = compressed.predict({
             "input_ids":      np.array([[token_id]], dtype=np.int32),
-            "attention_mask": np.ones((1, total_len), dtype=np.int32),
-            "past_kv":        past_kv,
-            "position_ids":   np.array([[curr_pos]], dtype=np.int32),
+            "attention_mask": _make_mask(write_pos),
+            "past_kv":        kv_buffer,
+            "position_ids":   np.array([[write_pos]], dtype=np.int32),
         })
-        past_kv    = output["present_kv"]
+        new_kv = output["new_kv"]  # [L, 2, H, 1, D]
+        slot = write_pos % MAX_KV_LEN
+        kv_buffer[:, :, :, slot:slot + 1, :] = new_kv
+        write_pos += 1
         next_token = int(np.argmax(output["logits"][0, 0, :]))
 
     # Decode _SMOKE_TEST_MIN_TOKENS new tokens.
     generated_tokens = []
-    for step in range(_SMOKE_TEST_MIN_TOKENS):
-        curr_pos  = position_offset + prompt_len + step
-        past_len  = past_kv.shape[3]
-        total_len = past_len + 1
+    for _ in range(_SMOKE_TEST_MIN_TOKENS):
         output = compressed.predict({
             "input_ids":      np.array([[next_token]], dtype=np.int32),
-            "attention_mask": np.ones((1, total_len), dtype=np.int32),
-            "past_kv":        past_kv,
-            "position_ids":   np.array([[curr_pos]], dtype=np.int32),
+            "attention_mask": _make_mask(write_pos),
+            "past_kv":        kv_buffer,
+            "position_ids":   np.array([[write_pos]], dtype=np.int32),
         })
-        past_kv    = output["present_kv"]
+        new_kv = output["new_kv"]
+        slot = write_pos % MAX_KV_LEN
+        kv_buffer[:, :, :, slot:slot + 1, :] = new_kv
+        write_pos += 1
         next_token = int(np.argmax(output["logits"][0, 0, :]))
         generated_tokens.append(next_token)
 

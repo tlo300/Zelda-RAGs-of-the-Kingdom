@@ -1,10 +1,6 @@
 // LLMService.swift
 // Loads the Core ML Qwen2.5 LLM and generates streaming text output via AsyncStream<String>.
 // All model filenames and generation parameters come from ModelConfig — never hardcoded.
-//
-// Generation uses a KV-cache for O(n) decode performance:
-//   - Prefill:  one forward pass over the full prompt → returns logits + initial KV-cache
-//   - Decode:   one token per step using the cached KV state → ~200x faster than full-sequence
 
 import CoreML
 import Foundation
@@ -42,81 +38,131 @@ protocol LLMTokenizer: Sendable {
     var eosTokenID: Int32 { get }
 }
 
-/// Runs a forward pass of the language model using the KV-cache interface.
-/// - `inputIDs`:  token IDs to process (full prompt for prefill, [nextToken] for decode)
-/// - `pastKV`:    accumulated KV-cache from previous calls; nil on the very first call
-/// Returns `(logits, presentKV)` where `presentKV` is the updated cache to pass next time.
+/// Runs a single forward pass of the language model for one token.
 protocol LLMPredictor: Sendable {
-    func predict(inputIDs: [Int32], pastKV: MLMultiArray?) async throws -> ([Float], MLMultiArray)
+    /// Returns logits for the given single token ID, advancing the internal KV cache state.
+    func predict(inputIDs: [Int32]) async throws -> [Float]
+    /// Resets the KV cache state. Call at the start of each new generation.
+    func reset()
 }
 
-// MARK: - Production implementation
+// MARK: - Production implementations
 
-/// Wraps a loaded `MLModel` to produce last-token logits via the KV-cache interface.
-struct CoreMLPredictor: LLMPredictor {
+/// Wraps a loaded `MLModel` to produce last-token logits using a fixed-size KV cache.
+///
+/// The model interface (from convert_llm.py) expects:
+///   input_ids      [1, 1]                    — single new token
+///   attention_mask [1, MAX_KV_LEN+1]         — 1 for valid past slots + current token
+///   past_kv        [L, 2, H, MAX_KV_LEN, D]  — circular KV buffer
+///   position_ids   [1, 1]                    — absolute position of the new token
+/// and returns:
+///   logits  [1, 1, vocab]
+///   new_kv  [L, 2, H, 1, D]                 — KV for the new token (written into buffer)
+///
+/// All shapes are fixed — no RangeDim — which prevents the Jetsam OOM that killed R26-R31.
+final class CoreMLPredictor: LLMPredictor, @unchecked Sendable {
     private let model: MLModel
+    private let maxKVLen:   Int
+    private let numLayers:  Int
+    private let numKVHeads: Int
+    private let headDim:    Int
 
-    init(model: MLModel) { self.model = model }
+    // Fixed-size circular KV buffer [L, 2, H, maxKVLen, D], Float16.
+    private let kvBuffer: MLMultiArray
+    // Pre-allocated per-call arrays to avoid repeated allocation on the hot path.
+    private let maskArr:  MLMultiArray   // [1, maxKVLen+1], Int32
+    private let inputArr: MLMultiArray   // [1, 1], Int32
+    private let posArr:   MLMultiArray   // [1, 1], Int32
 
-    func predict(inputIDs: [Int32], pastKV: MLMultiArray?) async throws -> ([Float], MLMultiArray) {
-        let seqLen  = inputIDs.count
-        let pastLen = pastKV?.shape[3].intValue ?? 0
-        let totalLen = pastLen + seqLen
+    private var writePos: Int = 0
 
-        // input_ids: [1, seqLen]
-        let inputArr = try MLMultiArray(shape: [1, NSNumber(value: seqLen)], dataType: .int32)
-        for (i, id) in inputIDs.enumerated() { inputArr[i] = NSNumber(value: id) }
+    init(model: MLModel) throws {
+        self.model      = model
+        self.maxKVLen   = ModelConfig.llmMaxKVLen
+        self.numLayers  = ModelConfig.llmNumLayers
+        self.numKVHeads = ModelConfig.llmNumKVHeads
+        self.headDim    = ModelConfig.llmHeadDim
 
-        // attention_mask: [1, totalLen] — all ones (attend to every past + current token)
-        let maskArr = try MLMultiArray(shape: [1, NSNumber(value: totalLen)], dataType: .int32)
-        for i in 0..<totalLen { maskArr[i] = 1 }
+        kvBuffer = try MLMultiArray(
+            shape: [NSNumber(value: numLayers), 2,
+                    NSNumber(value: numKVHeads), NSNumber(value: maxKVLen),
+                    NSNumber(value: headDim)],
+            dataType: .float16
+        )
+        maskArr  = try MLMultiArray(shape: [1, NSNumber(value: maxKVLen + 1)], dataType: .int32)
+        inputArr = try MLMultiArray(shape: [1, 1], dataType: .int32)
+        posArr   = try MLMultiArray(shape: [1, 1], dataType: .int32)
 
-        // past_kv: [L, 2, H, pastLen, D] — empty on first call, accumulated thereafter
-        let kvArr: MLMultiArray
-        if let pastKV {
-            kvArr = pastKV
-        } else {
-            kvArr = try MLMultiArray(
-                shape: [
-                    NSNumber(value: ModelConfig.llmNumLayers),
-                    2,
-                    NSNumber(value: ModelConfig.llmNumKVHeads),
-                    0,
-                    NSNumber(value: ModelConfig.llmHeadDim),
-                ],
-                dataType: .float16
-            )
+        // Zero-initialise the KV buffer.
+        memset(kvBuffer.dataPointer, 0, kvBuffer.count * MemoryLayout<Float16>.size)
+    }
+
+    func reset() {
+        writePos = 0
+        memset(kvBuffer.dataPointer, 0, kvBuffer.count * MemoryLayout<Float16>.size)
+    }
+
+    func predict(inputIDs: [Int32]) async throws -> [Float] {
+        guard let tokenID = inputIDs.last else {
+            throw LLMError.loadFailed(NSError(
+                domain: "LLMService", code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "predict() called with empty inputIDs"]))
         }
 
-        // position_ids: [1, seqLen] — RoPE positions [pastLen, pastLen+1, ..., totalLen-1]
-        let posArr = try MLMultiArray(shape: [1, NSNumber(value: seqLen)], dataType: .int32)
-        for i in 0..<seqLen { posArr[i] = NSNumber(value: pastLen + i) }
+        let slot      = writePos % maxKVLen
+        let validPast = min(writePos, maxKVLen)
+
+        // Build attention mask: 1 for valid past slots, 0 for empty slots, 1 for current token.
+        let maskBase = maskArr.dataPointer.assumingMemoryBound(to: Int32.self)
+        memset(maskBase, 0, (maxKVLen + 1) * MemoryLayout<Int32>.size)
+        for i in 0..<validPast { maskBase[i] = 1 }
+        maskBase[maxKVLen] = 1  // current token
+
+        inputArr[0] = NSNumber(value: tokenID)
+        posArr[0]   = NSNumber(value: writePos)
 
         let features = try MLDictionaryFeatureProvider(dictionary: [
             "input_ids":      MLFeatureValue(multiArray: inputArr),
             "attention_mask": MLFeatureValue(multiArray: maskArr),
-            "past_kv":        MLFeatureValue(multiArray: kvArr),
+            "past_kv":        MLFeatureValue(multiArray: kvBuffer),
             "position_ids":   MLFeatureValue(multiArray: posArr),
         ])
         let result = try await model.prediction(from: features)
 
-        // logits: [1, 1, vocab]
-        guard let logitsMLA = result.featureValue(for: "logits")?.multiArrayValue else {
-            throw LLMError.loadFailed(NSError(
-                domain: "LLMService", code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "Model output missing 'logits' key"]))
-        }
-        let vocabSize = logitsMLA.shape[2].intValue
-        let logits    = (0..<vocabSize).map { logitsMLA[$0].floatValue }
-
-        // present_kv: [L, 2, H, totalLen, D]
-        guard let presentKV = result.featureValue(for: "present_kv")?.multiArrayValue else {
+        // Write new_kv [L, 2, H, 1, D] into the circular buffer at the current slot.
+        guard let newKV = result.featureValue(for: "new_kv")?.multiArrayValue else {
             throw LLMError.loadFailed(NSError(
                 domain: "LLMService", code: -2,
-                userInfo: [NSLocalizedDescriptionKey: "Model output missing 'present_kv' key"]))
+                userInfo: [NSLocalizedDescriptionKey: "Model output missing 'new_kv' key"]))
         }
+        let srcBase = newKV.dataPointer.assumingMemoryBound(to: Float16.self)
+        let dstBase = kvBuffer.dataPointer.assumingMemoryBound(to: Float16.self)
+        let H = numKVHeads
+        let D = headDim
+        let M = maxKVLen
+        let L = numLayers
+        // new_kv  strides: [2*H*D,   H*D,   D, D, 1] for [L, 2, H, 1, D]
+        // kvBuffer strides: [2*H*M*D, H*M*D, M*D, D, 1] for [L, 2, H, M, D]
+        for l in 0..<L {
+            for h2 in 0..<2 {
+                for hh in 0..<H {
+                    let srcOff = (l * 2 * H + h2 * H + hh) * D
+                    let dstOff = (l * 2 * H * M + h2 * H * M + hh * M + slot) * D
+                    memcpy(dstBase + dstOff, srcBase + srcOff, D * MemoryLayout<Float16>.size)
+                }
+            }
+        }
+        writePos += 1
 
-        return (logits, presentKV)
+        // Extract logits [1, 1, vocabSize] → flat [vocabSize].
+        guard let mla = result.featureValue(for: "logits")?.multiArrayValue else {
+            throw LLMError.loadFailed(NSError(
+                domain: "LLMService", code: -3,
+                userInfo: [NSLocalizedDescriptionKey: "Model output missing 'logits' key"]))
+        }
+        let vocabSize  = mla.shape[2].intValue
+        let lastOffset = (mla.shape[1].intValue - 1) * vocabSize
+        return (0..<vocabSize).map { mla[lastOffset + $0].floatValue }
     }
 }
 
@@ -157,18 +203,16 @@ actor LLMService {
 
         do {
             let config = MLModelConfiguration()
-            // .all lets Core ML use the Neural Engine, which is required for grouped
-            // palettization (4-bit per_grouped_channel) — the NE is the only runtime
-            // that can decompress these weights.  .cpuAndGPU crashes with an uncatchable
-            // NSException on device because the palettized weight decompression op has
-            // no CPU/GPU fallback.  In the simulator there is no NE so Core ML falls
-            // back to CPU automatically.
-            config.computeUnits = .all
+            // cpuAndGPU matches the model's compilation target (ct.ComputeUnit.CPU_AND_GPU
+            // in convert_llm.py). Fixed-shape KV cache means no RangeDim compilation spike,
+            // so MLModel.load() no longer OOM-kills on device as it did in R26-R31.
+            // NE will be re-enabled once NE-specific conversion time is under control.
+            config.computeUnits = .cpuAndGPU
             let compiledURL = try await compileAndCache(modelURL)
             llmLog.notice("MLModel.load starting — this may take 30+ min in the simulator")
             let model = try await MLModel.load(contentsOf: compiledURL, configuration: config)
             llmLog.notice("MLModel.load complete")
-            predictor = CoreMLPredictor(model: model)
+            predictor = try CoreMLPredictor(model: model)
         } catch let e as LLMError {
             llmLog.error("LLM load failed: \(e.localizedDescription, privacy: .public)")
             throw e
@@ -241,47 +285,35 @@ actor LLMService {
             return
         }
 
+        predictor.reset()
+
         let promptTokens = tokenizer.encode(ModelConfig.chatPrompt(userQuery: prompt))
         let eosID  = tokenizer.eosTokenID
         let maxNew = ModelConfig.maxOutputTokens
+        var tokenCount = 0
 
         llmLog.notice("Generation starting — prompt tokens: \(promptTokens.count, privacy: .public), maxNew: \(maxNew, privacy: .public)")
 
-        // ── Prefill: process full prompt in one forward pass ──────────────────────
-        // Returns logits for the last prompt token + initialises the KV cache so
-        // every subsequent decode step only processes one new token.
-        guard let (prefillLogits, kvCache) = try? await predictor.predict(
-            inputIDs: promptTokens,
-            pastKV:   nil
-        ) else {
-            continuation.yield("[Error: LLM prefill failed]")
-            return
-        }
-
-        if Task.isCancelled { return }
-
-        // Greedy pick of first generated token from prefill logits.
-        var nextToken = argmax(prefillLogits)
-        if isStopToken(nextToken, eosID: eosID) {
-            llmLog.notice("Generation stopped — EOS on prefill")
-            return
-        }
-        var tokenCount = 1
-        let firstText  = tokenizer.decode(tokenID: nextToken)
-        if !firstText.isEmpty { continuation.yield(firstText) }
-
-        // ── Decode: one token per step using accumulated KV cache ─────────────────
-        var currentKV: MLMultiArray = kvCache
-
-        for _ in 1..<maxNew {
-            // Guard: sequence length cap (RangeDim upper bound)
-            let totalSoFar = promptTokens.count + tokenCount
-            if totalSoFar >= ModelConfig.modelMaxSequenceLength {
-                llmLog.notice("Generation stopped — sequence length limit (\(ModelConfig.modelMaxSequenceLength, privacy: .public)) reached after \(tokenCount, privacy: .public) tokens")
-                break
+        // Prefill: run each prompt token through the model to populate the KV cache.
+        // The last prefill call's logits seed the first decode step.
+        var prefillLogits: [Float]? = nil
+        for token in promptTokens {
+            await Task.yield()
+            if Task.isCancelled {
+                llmLog.notice("Generation cancelled during prefill")
+                return
             }
+            prefillLogits = try? await predictor.predict(inputIDs: [token])
+        }
 
-            // Yield actor so a concurrent generate() call can cancel this task.
+        guard let firstLogits = prefillLogits else {
+            llmLog.error("Generation stopped — prefill produced no output")
+            return
+        }
+
+        // Decode: generate up to maxNew tokens, one per forward pass.
+        var currentLogits = firstLogits
+        for _ in 0..<maxNew {
             await Task.yield()
             if Task.isCancelled {
                 llmLog.notice("Generation cancelled after \(tokenCount, privacy: .public) tokens")
@@ -292,46 +324,33 @@ actor LLMService {
                 break
             }
 
-            guard let (logits, newKV) = try? await predictor.predict(
-                inputIDs: [nextToken],
-                pastKV:   currentKV
-            ) else {
-                llmLog.error("Generation stopped — predictor failed after \(tokenCount, privacy: .public) tokens")
-                break
+            // Greedy decoding: pick the token with the highest logit.
+            var maxLogit = Float(-Float.infinity)
+            var nextToken: Int32 = 0
+            for (i, v) in currentLogits.enumerated() {
+                if v > maxLogit { maxLogit = v; nextToken = Int32(i) }
             }
 
-            if Task.isCancelled {
-                llmLog.notice("Generation cancelled after \(tokenCount, privacy: .public) tokens")
-                break
-            }
-
-            currentKV  = newKV
-            nextToken  = argmax(logits)
-            tokenCount += 1
-
-            if isStopToken(nextToken, eosID: eosID) {
+            // Stop on <|im_end|> (151645), <|endoftext|> (151643), or <|im_start|> (151644).
+            if nextToken == eosID || nextToken == 151643 || nextToken == 151644 {
                 llmLog.notice("Generation stopped — EOS token \(nextToken, privacy: .public) after \(tokenCount, privacy: .public) tokens")
                 break
             }
 
+            tokenCount += 1
             let text = tokenizer.decode(tokenID: nextToken)
-            if !text.isEmpty { continuation.yield(text) }
+            if !text.isEmpty {
+                continuation.yield(text)
+            }
+
+            guard let nextLogits = try? await predictor.predict(inputIDs: [nextToken]) else {
+                llmLog.error("Generation stopped — predictor failed after \(tokenCount, privacy: .public) tokens")
+                break
+            }
+            currentLogits = nextLogits
         }
+
         llmLog.notice("Generation complete — \(tokenCount, privacy: .public) tokens yielded")
-    }
-
-    private func argmax(_ logits: [Float]) -> Int32 {
-        var maxVal = Float(-Float.infinity)
-        var maxIdx: Int32 = 0
-        for (i, v) in logits.enumerated() {
-            if v > maxVal { maxVal = v; maxIdx = Int32(i) }
-        }
-        return maxIdx
-    }
-
-    private func isStopToken(_ token: Int32, eosID: Int32) -> Bool {
-        // <|im_end|> = 151645, <|endoftext|> = 151643, <|im_start|> = 151644
-        token == eosID || token == 151643 || token == 151644
     }
 
     private func registerMemoryWarningHandler() {

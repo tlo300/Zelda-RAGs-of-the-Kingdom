@@ -24,10 +24,9 @@ struct ModelConfig {
         }
     }
 
-    /// Total token limit the Core ML model was compiled for.
-    /// Must match max_context in model/convert_llm.py — change both together via convert-model CI.
-    /// Set to 2048 to match convert-model run 23591992777.
-    static var modelMaxSequenceLength: Int { 2048 }
+    /// Maximum number of past tokens stored in the fixed-size KV cache.
+    /// Must match MAX_KV_LEN in model/convert_llm.py — change both together via convert-model CI.
+    static var llmMaxKVLen: Int { 512 }
 
     /// Maximum tokens for the initial prompt (system + RAG context + user question).
     /// Sized to leave headroom for the generated answer within modelMaxSequenceLength.

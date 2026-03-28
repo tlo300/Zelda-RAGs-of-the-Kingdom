@@ -92,6 +92,14 @@ jobs:
       - name: Run unit tests
         run: pytest model/tests/test_convert_llm.py -v
 
+      # Cache the HuggingFace model weights between runs (~3 GB download avoided).
+      # Key includes the model variant so 1B and 3B caches don't collide.
+      - name: Cache HuggingFace model weights
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-qwen2.5-${{ github.event.inputs.model_variant }}-v1
+
       # --- Full conversion path (skip_conversion = false) ---
 
       - name: Convert Qwen2.5 to Core ML
