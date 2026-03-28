@@ -190,13 +190,14 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #115 add HyruleSage app — Llama 3.2 powered (merged 2026-03-28)
-In progress     : nothing
+Last completed  : #116 fix HyruleSage maxContextTokens overflow (merged 2026-03-28)
+In progress     : build-ipa-llama run 23687306531 (HyruleSage fix IPA, awaiting user test)
 Blocked         : nothing
-Last session    : 2026-03-28 — ZeldaGuide R36 built (run 23687303752); fixes RAG echo bug; awaiting device test
+Last session    : 2026-03-28 — Fixed HyruleSage blank responses (#116, maxContextTokens 1500→380); IPA building (run 23687306531)
 
 Notes:
-- HyruleSage: first IPA published — download from GitHub Releases (releases/latest), sideload via SideStore
+- HyruleSage: IPA from run 23687306531 is the one to test — fixes blank/empty responses when asking questions
+- HyruleSage blank response root cause: maxContextTokens=1500 caused ~1500-token prefill, overflowing 512-slot KV cache; same bug as ZeldaGuide #111, fixed in #116 (maxContextTokens=380)
 - HyruleSage model artifacts: convert-model-llama run 23683351896 (LlamaModel-1B.mlpackage + tokenizer-llama.json)
 - ZeldaGuide (Qwen): R36 is the current IPA — has context-overflow fix (#111) + RAG echo fix (chunk format)
 - ZeldaGuide R36 fix: changed chunk headers from [N] (source: ...) to <<source | title>>; added Answer: cue; fixes Qwen 1.5B echoing context instead of answering
@@ -251,6 +252,7 @@ Notes:
 | #18   | App performance tuning and model warm-up | 4 | merged |
 | #111  | Fix RAG prompt overflow (no answer generated) | 4 | merged |
 | #115  | Add HyruleSage app — Llama 3.2 powered Zelda TotK guide | 4 | merged |
+| #116  | Fix HyruleSage blank responses (maxContextTokens overflow) | 4 | merged |
 | #69   | Add in-app log viewer for on-device debugging | 4 | backlog |
 
 ---
