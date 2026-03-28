@@ -190,22 +190,21 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #113 ZeldaGuideSearch paragraph breaks (merged 2026-03-28)
-In progress     : build-ipa-search run 23683211267
+Last completed  : #111 fix RAG prompt overflow (merged 2026-03-28)
+In progress     : nothing
 Blocked         : nothing
-Last session    : 2026-03-28 — PR #113 merged; build-ipa-search triggered (run 23683211267)
+Last session    : 2026-03-28 — R33 tested on device; produced no output; root cause was RAG prompt (~1875 tokens) overflowing 512-token KV cache; fixed in #114 / #111; need new build-ipa run to get R34
 
 Notes:
-- R33 is the current IPA — fixed-size KV cache, GPU inference, 728 MB, artifact on run 23681617435
-  - Sideload and confirm: (a) MLModel.load() completes, (b) generation produces text
+- R33 is the last IPA — does NOT have the context-overflow fix; do not test for generation with R33
+- Need to trigger build-ipa CI to produce R34 (will have the 380-token context fix)
 - Fixed-size KV cache design (merged in #109):
   - convert_llm.py: past_kv [L,2,H,512,D] fixed; new_kv [L,2,H,1,D] per token; CPU_AND_GPU compile
   - LLMService.swift: CoreMLPredictor circular buffer + write pointer; .cpuAndGPU load
   - ModelConfig.swift: llmMaxKVLen = 512
   - Palettization: per_grouped_channel with group_size=32
   - ct.convert() with CPU_AND_GPU completes in ~1.5h (CPU_AND_NE hit 6h GitHub limit)
-- Known limitation: RAG prompt (~1000 tokens) exceeds 512-token KV buffer — system prompt may be truncated
-  - Fix: reduce maxContextTokens to ~380 so prompt fits within buffer
+- Context fix (merged in #111): maxContextTokens = 380; charsPerChunk = 380*4/5 = 304; fits in 512-token KV cache
 - NE support: future improvement once GPU baseline is confirmed working
 - Do NOT sideload R26-R31 — all crash.
 - FTS5 fallback triggers on similarity < 0.3; os.Logger debug logging added
@@ -247,6 +246,7 @@ Notes:
 | #89   | Enhance debug-simulator for full RAG pipeline + bump 2048-context limits | 4 | merged |
 | #103  | Fix OOM crash (logits slice to last token) + im_start stop token | 4 | merged |
 | #18   | App performance tuning and model warm-up | 4 | merged |
+| #111  | Fix RAG prompt overflow (no answer generated) | 4 | merged |
 | #69   | Add in-app log viewer for on-device debugging | 4 | backlog |
 
 ---
