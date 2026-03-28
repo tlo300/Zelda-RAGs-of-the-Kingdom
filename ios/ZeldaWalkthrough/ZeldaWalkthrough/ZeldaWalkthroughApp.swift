@@ -8,7 +8,7 @@ struct ZeldaWalkthroughApp: App {
     var body: some Scene {
         WindowGroup {
             TableOfContentsView()
+                .tint(.green)
         }
-        .tint(.green)
     }
 }
