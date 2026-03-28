@@ -48,6 +48,7 @@ jobs:
 
       - name: Compile MiniLMEmbedder to .mlmodelc and inject into HyruleSage Resources
         run: |
+          mkdir -p ios/HyruleSage/Resources
           xcrun coremlcompiler compile model/MiniLMEmbedder.mlpackage model/ \
             --platform iOS --deployment-target 18.0
           rm -rf ios/HyruleSage/Resources/MiniLMEmbedder.mlmodelc
