@@ -193,13 +193,14 @@ Active milestone : 4 - Polish and distribution
 Last completed  : #115 add HyruleSage app — Llama 3.2 powered (merged 2026-03-28)
 In progress     : nothing
 Blocked         : nothing
-Last session    : 2026-03-28 — HyruleSage 1B IPA built and published to GitHub Release (build-ipa-llama run 23685117898); ready to sideload via SideStore
+Last session    : 2026-03-28 — ZeldaGuide R36 built (run 23687303752); fixes RAG echo bug; awaiting device test
 
 Notes:
 - HyruleSage: first IPA published — download from GitHub Releases (releases/latest), sideload via SideStore
 - HyruleSage model artifacts: convert-model-llama run 23683351896 (LlamaModel-1B.mlpackage + tokenizer-llama.json)
-- ZeldaGuide (Qwen): R33 is the last IPA — does NOT have the context-overflow fix; do not test for generation with R33
-- ZeldaGuide: Need to trigger build-ipa CI to produce R34 (will have the 380-token context fix)
+- ZeldaGuide (Qwen): R36 is the current IPA — has context-overflow fix (#111) + RAG echo fix (chunk format)
+- ZeldaGuide R36 fix: changed chunk headers from [N] (source: ...) to <<source | title>>; added Answer: cue; fixes Qwen 1.5B echoing context instead of answering
+- ZeldaGuide R33 and earlier: do not use for generation testing
 - Fixed-size KV cache design (merged in #109):
   - convert_llm.py: past_kv [L,2,H,512,D] fixed; new_kv [L,2,H,1,D] per token; CPU_AND_GPU compile
   - LLMService.swift: CoreMLPredictor circular buffer + write pointer; .cpuAndGPU load
