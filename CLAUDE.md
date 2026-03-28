@@ -190,13 +190,13 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : ZeldaWalkthrough app + content pipeline (2026-03-28)
-In progress     : nothing
+Last completed  : #116 fix HyruleSage maxContextTokens overflow (merged 2026-03-28)
+In progress     : #117/#118 fix HyruleSage context echo + SQLiteVec error 1 (PR open, awaiting CI + device test)
 Blocked         : nothing
-Last session    : 2026-03-28 — Built ZeldaWalkthrough (4th app): pure SwiftUI chapter-based TotK guide; 75 sections populated from chunks.jsonl via keyword scoring (pipeline/generate_walkthrough_content.py); build-ipa-walkthrough.yml CI (~2 min, no ML); IPA released successfully
+Last session    : 2026-03-28 — Device-tested HyruleSage R4; found [N] citation echo + SQLiteVec error 1 on follow-up; fixed in PR #118
 
 Notes:
-- HyruleSage: IPA from run 23687306531 is the one to test — fixes blank/empty responses when asking questions
+- HyruleSage: R4 device-tested 2026-03-28 — blank responses fixed (#116), but context echo ([N] format) + SQLiteVec error 1 on follow-up found; fixed in #118 (PR open)
 - HyruleSage blank response root cause: maxContextTokens=1500 caused ~1500-token prefill, overflowing 512-slot KV cache; same bug as ZeldaGuide #111, fixed in #116 (maxContextTokens=380)
 - HyruleSage model artifacts: convert-model-llama run 23683351896 (LlamaModel-1B.mlpackage + tokenizer-llama.json)
 - ZeldaGuide (Qwen): R36 is the current IPA — has context-overflow fix (#111) + RAG echo fix (chunk format)
@@ -253,6 +253,7 @@ Notes:
 | #111  | Fix RAG prompt overflow (no answer generated) | 4 | merged |
 | #115  | Add HyruleSage app — Llama 3.2 powered Zelda TotK guide | 4 | merged |
 | #116  | Fix HyruleSage blank responses (maxContextTokens overflow) | 4 | merged |
+| #117  | Fix HyruleSage context echo + SQLiteVec error 1 on follow-up | 4 | PR #118 |
 | #69   | Add in-app log viewer for on-device debugging | 4 | backlog |
 
 ---
