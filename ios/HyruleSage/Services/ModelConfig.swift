@@ -30,7 +30,9 @@ struct ModelConfig {
     static var llmMaxKVLen: Int { 512 }
 
     /// Maximum tokens for the initial prompt (system + RAG context + user question).
-    static var maxContextTokens: Int { 1500 }
+    /// Must stay well below llmMaxKVLen (512) once overhead tokens are added.
+    /// 380 context + ~50 format/system overhead = ~430 tokens, fits in the 512-slot KV cache.
+    static var maxContextTokens: Int { 380 }
 
     /// Generation-loop iteration cap.
     static var maxOutputTokens: Int { 512 }
