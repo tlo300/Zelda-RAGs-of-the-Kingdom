@@ -178,8 +178,8 @@ actor RAGEngine {
             return
         }
 
-        guard !queryEmbedding.contains(where: { $0.isNaN }) else {
-            continuation.yield("[Error: Query embedding contains NaN — cannot perform vector search]")
+        guard !queryEmbedding.contains(where: { $0.isNaN || $0.isInfinite }) else {
+            continuation.yield("[Error: Query embedding contains NaN/Inf — cannot perform vector search]")
             return
         }
 
@@ -209,9 +209,9 @@ actor RAGEngine {
             contextBlock = "(No relevant information found in the knowledge base.)"
         } else {
             let charsPerChunk = (ModelConfig.maxContextTokens * 4) / max(chunks.count, 1)
-            contextBlock = chunks.enumerated().map { index, chunk in
+            contextBlock = chunks.enumerated().map { _, chunk in
                 let text = String(chunk.chunkText.prefix(charsPerChunk))
-                return "[\(index + 1)] (source: \(chunk.source) | \(chunk.pageTitle))\n\(text)"
+                return "<<\(chunk.source) | \(chunk.pageTitle)>>\n\(text)"
             }.joined(separator: "\n\n")
         }
         return "Context:\n\(contextBlock)\n\nQuestion: \(question)"

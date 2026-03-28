@@ -55,7 +55,13 @@ actor VectorSearchService {
     /// when vector search returns no results OR when the best similarity score is below
     /// `ModelConfig.minVectorSimilarity`.
     func search(queryText: String, queryEmbedding: [Float], topK: Int) async throws -> [KnowledgeChunk] {
-        let results = try await vectorSearch(query: queryEmbedding, topK: topK)
+        let results: [KnowledgeChunk]
+        do {
+            results = try await vectorSearch(query: queryEmbedding, topK: topK)
+        } catch {
+            vsLog.error("Vector search error: \(error.localizedDescription, privacy: .public) — falling back to FTS5")
+            return try await ftsSearch(queryText: queryText, topK: topK)
+        }
         let bestSimilarity = results.map(\.similarityScore).max() ?? 0
         vsLog.notice("Vector search: \(results.count, privacy: .public) results, best similarity \(bestSimilarity, privacy: .public)")
         for (i, chunk) in results.enumerated() {
