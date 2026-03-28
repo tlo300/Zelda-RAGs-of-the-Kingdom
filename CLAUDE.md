@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #116 fix HyruleSage maxContextTokens overflow (merged 2026-03-28)
-In progress     : build-ipa-llama run 23687306531 (HyruleSage fix IPA, awaiting user test)
+Last completed  : ZeldaWalkthrough app + content pipeline (2026-03-28)
+In progress     : nothing
 Blocked         : nothing
-Last session    : 2026-03-28 — Fixed HyruleSage blank responses (#116, maxContextTokens 1500→380); IPA building (run 23687306531)
+Last session    : 2026-03-28 — Built ZeldaWalkthrough (4th app): pure SwiftUI chapter-based TotK guide; 75 sections populated from chunks.jsonl via keyword scoring (pipeline/generate_walkthrough_content.py); build-ipa-walkthrough.yml CI (~2 min, no ML); IPA released successfully
 
 Notes:
 - HyruleSage: IPA from run 23687306531 is the one to test — fixes blank/empty responses when asking questions
