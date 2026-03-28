@@ -190,10 +190,10 @@ Create docs/decisions/NNN-short-title.md with:
 
 ## Current state
 Active milestone : 4 - Polish and distribution
-Last completed  : #109 fixed-size KV cache (merged 2026-03-28)
-In progress     : nothing
+Last completed  : #113 ZeldaGuideSearch paragraph breaks (merged 2026-03-28)
+In progress     : build-ipa-search run 23683211267
 Blocked         : nothing
-Last session    : 2026-03-28 — R33 built and PR #109 merged; sideload R33 to verify on device
+Last session    : 2026-03-28 — PR #113 merged; build-ipa-search triggered (run 23683211267)
 
 Notes:
 - R33 is the current IPA — fixed-size KV cache, GPU inference, 728 MB, artifact on run 23681617435
